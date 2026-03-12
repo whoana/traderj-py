@@ -1,0 +1,41 @@
+name: API CI
+
+on:
+  push:
+    paths: ['api/**', 'shared/**']
+  pull_request:
+    paths: ['api/**', 'shared/**']
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          cd shared && pip install -e .
+          cd ../api && poetry install
+
+      - name: Lint (ruff)
+        run: ruff check shared/ api/
+
+      - name: Type check (mypy)
+        run: cd api && mypy api/ --strict
+
+      - name: Unit tests
+        run: cd api && pytest tests/ -v --cov=api --cov-report=xml
+
+      - name: Coverage gate (80%+)
+        run: cd api && coverage report --fail-under=80
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: api/coverage.xml
+          flags: api

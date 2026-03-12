@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment / Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Node.js / Dashboard
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+nohup.out
+
+# Parquet exports
+exports/*.parquet
+
+# SQLite database
+*.db
+*.sqlite3
+
+# Backtest results / reports (generated)
+results/
+reports/
+
+# Playwright MCP (browser test artifacts)
+.playwright-mcp/
+
+# Claude Code agent memory (user-specific)
+.claude/agent-memory/
+
+# bkit agent state (user-specific)
+.bkit/
+
+# PDCA snapshots (session-specific)
+docs/.pdca-snapshots/
+docs/.pdca-status.json
+docs/.bkit-memory.json

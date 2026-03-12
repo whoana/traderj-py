@@ -1,0 +1,35 @@
+# Development overrides: hot-reload, volume mounts, SQLite option
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+      target: dev
+    volumes:
+      - ./shared:/app/shared:ro
+      - ./engine:/app/engine
+    environment:
+      USE_SQLITE: ${USE_SQLITE:-false}
+      LOG_LEVEL: DEBUG
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      target: dev
+    volumes:
+      - ./shared:/app/shared:ro
+      - ./api:/app/api
+      - ./engine:/app/engine:ro
+    environment:
+      LOG_LEVEL: DEBUG
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+      target: dev
+    volumes:
+      - ./dashboard/src:/app/src
+    environment:
+      NODE_ENV: development

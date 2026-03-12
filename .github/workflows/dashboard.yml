@@ -1,0 +1,34 @@
+name: Dashboard CI
+
+on:
+  push:
+    paths: ['dashboard/**']
+  pull_request:
+    paths: ['dashboard/**']
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'dashboard/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: cd dashboard && pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        run: cd dashboard && pnpm lint
+
+      - name: Type check (tsc)
+        run: cd dashboard && pnpm tsc --noEmit
+
+      - name: Unit tests (vitest)
+        run: cd dashboard && pnpm test --coverage
+
+      - name: Build check
+        run: cd dashboard && pnpm build

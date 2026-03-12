@@ -1,0 +1,94 @@
+groups:
+  - name: traderj_engine
+    rules:
+      - alert: EngineDown
+        expr: up{job="engine"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Trading engine is down"
+
+      - alert: HighOrderFailureRate
+        expr: rate(traderj_order_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Order failure rate exceeds 10%"
+
+      - alert: CircuitBreakerOpen
+        expr: traderj_circuit_breaker_state == 2
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker is OPEN — trading halted"
+
+      - alert: HighConsecutiveLosses
+        expr: traderj_consecutive_losses > 3
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Strategy has {{ $value }} consecutive losses"
+
+      - alert: DailyLossLimitApproaching
+        expr: traderj_daily_pnl_krw < -200000
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Daily PnL approaching loss limit: {{ $value }} KRW"
+
+  - name: traderj_api
+    rules:
+      - alert: APIDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API server is down"
+
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(traderj_http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency > 1s"
+
+      - alert: HighErrorRate
+        expr: rate(traderj_http_request_errors_total[5m]) / rate(traderj_http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API error rate exceeds 5%"
+
+      - alert: WebSocketConnectionsDrop
+        expr: traderj_ws_connections < 1 and traderj_ws_connections offset 5m > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "All WebSocket connections lost"
+
+  - name: traderj_infra
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+
+      - alert: HighDBConnectionUsage
+        expr: traderj_db_pool_used / traderj_db_pool_max > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB connection pool > 80% utilized"

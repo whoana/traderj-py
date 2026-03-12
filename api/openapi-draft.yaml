@@ -1,0 +1,566 @@
+openapi: "3.1.0"
+info:
+  title: traderj API
+  version: "0.1.0"
+  description: traderj trading bot REST + WebSocket API
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    PaginatedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        pages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        status_code:
+          type: integer
+
+    BotResponse:
+      type: object
+      properties:
+        strategy_id:
+          type: string
+        state:
+          type: string
+          enum: [idle, starting, scanning, validating, executing, logging, monitoring, paused, shutting_down]
+        trading_mode:
+          type: string
+          enum: [paper, live, signal_only]
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+
+    BotControlResponse:
+      type: object
+      properties:
+        strategy_id:
+          type: string
+        command:
+          type: string
+        status:
+          type: string
+
+    PositionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+        side:
+          type: string
+        entry_price:
+          type: string
+        amount:
+          type: string
+        current_price:
+          type: string
+        stop_loss:
+          type: string
+        unrealized_pnl:
+          type: string
+        realized_pnl:
+          type: string
+        status:
+          type: string
+          enum: [open, closed]
+        strategy_id:
+          type: string
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+        side:
+          type: string
+          enum: [buy, sell]
+        order_type:
+          type: string
+          enum: [market, limit]
+        amount:
+          type: string
+        price:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, filled, cancelled, failed]
+        strategy_id:
+          type: string
+        idempotency_key:
+          type: string
+        slippage_pct:
+          type: number
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        filled_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CandleResponse:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+        open:
+          type: string
+        high:
+          type: string
+        low:
+          type: string
+        close:
+          type: string
+        volume:
+          type: string
+
+    SignalResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        strategy_id:
+          type: string
+        symbol:
+          type: string
+        direction:
+          type: string
+          enum: [buy, sell, hold]
+        score:
+          type: number
+        timeframe:
+          type: string
+        components:
+          type: object
+        details:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    DailyPnLResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        strategy_id:
+          type: string
+        realized:
+          type: string
+        unrealized:
+          type: string
+        total_value:
+          type: string
+        trade_count:
+          type: integer
+
+    RiskStateResponse:
+      type: object
+      properties:
+        strategy_id:
+          type: string
+        consecutive_losses:
+          type: integer
+        daily_pnl:
+          type: string
+        cooldown_until:
+          type: string
+          format: date-time
+          nullable: true
+        total_trades:
+          type: integer
+        total_wins:
+          type: integer
+
+    MacroSnapshotResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        fear_greed:
+          type: number
+          nullable: true
+        btc_dominance:
+          type: number
+          nullable: true
+        dxy:
+          type: number
+          nullable: true
+        funding_rate:
+          type: number
+          nullable: true
+        market_score:
+          type: number
+          nullable: true
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        uptime:
+          type: number
+        db:
+          type: string
+        engine:
+          type: string
+
+  parameters:
+    StrategyIdQuery:
+      name: strategy_id
+      in: query
+      schema:
+        type: string
+    StatusQuery:
+      name: status
+      in: query
+      schema:
+        type: string
+    PageQuery:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+    SizeQuery:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+    DaysQuery:
+      name: days
+      in: query
+      schema:
+        type: integer
+        default: 30
+
+paths:
+  # --- Health (no auth) ---
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  # --- Bots (5 endpoints) ---
+  /api/v1/bots:
+    get:
+      operationId: listBots
+      summary: List all bot instances
+      responses:
+        "200":
+          description: Bot list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BotResponse"
+
+  /api/v1/bots/{strategy_id}:
+    get:
+      operationId: getBot
+      summary: Get bot state
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotResponse"
+
+  /api/v1/bots/{strategy_id}/start:
+    post:
+      operationId: startBot
+      summary: Start bot
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotControlResponse"
+
+  /api/v1/bots/{strategy_id}/stop:
+    post:
+      operationId: stopBot
+      summary: Stop bot
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot stopped
+
+  /api/v1/bots/emergency-stop:
+    post:
+      operationId: emergencyStop
+      summary: Emergency stop all bots
+      responses:
+        "200":
+          description: All bots stopped
+
+  # --- Positions (3 endpoints) ---
+  /api/v1/positions:
+    get:
+      operationId: listPositions
+      summary: List positions
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/StatusQuery"
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/SizeQuery"
+      responses:
+        "200":
+          description: Position list
+
+  /api/v1/positions/{position_id}:
+    get:
+      operationId: getPosition
+      summary: Get position detail
+      parameters:
+        - name: position_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Position detail
+
+  /api/v1/positions/close-all:
+    post:
+      operationId: closeAllPositions
+      summary: Close all open positions
+      responses:
+        "200":
+          description: Positions closed
+
+  # --- Orders (2 endpoints) ---
+  /api/v1/orders:
+    get:
+      operationId: listOrders
+      summary: List orders
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/StatusQuery"
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/SizeQuery"
+      responses:
+        "200":
+          description: Order list
+
+  /api/v1/orders/{order_id}:
+    get:
+      operationId: getOrder
+      summary: Get order detail
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order detail
+
+  # --- Candles (1 endpoint) ---
+  /api/v1/candles:
+    get:
+      operationId: getCandles
+      summary: Get OHLCV candle data
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+            default: BTC/KRW
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            default: 4h
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+      responses:
+        "200":
+          description: Candle data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CandleResponse"
+
+  # --- Signals (2 endpoints) ---
+  /api/v1/signals:
+    get:
+      operationId: listSignals
+      summary: List signals
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/SizeQuery"
+      responses:
+        "200":
+          description: Signal list
+
+  /api/v1/signals/latest:
+    get:
+      operationId: getLatestSignal
+      summary: Get latest signal per strategy
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+      responses:
+        "200":
+          description: Latest signal
+
+  # --- PnL (2 endpoints) ---
+  /api/v1/pnl/daily:
+    get:
+      operationId: getDailyPnL
+      summary: Get daily PnL history
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/DaysQuery"
+      responses:
+        "200":
+          description: Daily PnL history
+
+  /api/v1/pnl/analytics:
+    get:
+      operationId: getPnLAnalytics
+      summary: Get PnL analytics (total, win rate, etc)
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/DaysQuery"
+      responses:
+        "200":
+          description: PnL analytics
+
+  # --- Risk (1 endpoint) ---
+  /api/v1/risk/{strategy_id}:
+    get:
+      operationId: getRiskState
+      summary: Get risk state for a strategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Risk state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskStateResponse"
+
+  # --- Macro (2 endpoints) ---
+  /api/v1/macro/latest:
+    get:
+      operationId: getLatestMacro
+      summary: Get latest macro snapshot
+      responses:
+        "200":
+          description: Latest macro snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MacroSnapshotResponse"
+
+  /api/v1/macro/history:
+    get:
+      operationId: getMacroHistory
+      summary: Get macro history
+      parameters:
+        - $ref: "#/components/parameters/DaysQuery"
+      responses:
+        "200":
+          description: Macro history
+
+  # --- Analytics (1 endpoint) ---
+  /api/v1/analytics/backtest:
+    get:
+      operationId: listBacktestResults
+      summary: List backtest results
+      parameters:
+        - $ref: "#/components/parameters/StrategyIdQuery"
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/SizeQuery"
+      responses:
+        "200":
+          description: Backtest results

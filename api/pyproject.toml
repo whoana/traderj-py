@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "traderj-api"
+version = "0.1.0"
+description = "traderj FastAPI server"
+authors = ["whoana"]
+packages = [{include = "api"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+traderj-shared = {path = "../shared", develop = true}
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+asyncpg = "*"
+prometheus-client = "*"
+pydantic-settings = "*"
+httpx = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+ruff = "*"
+mypy = "*"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

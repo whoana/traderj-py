@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "traderj-engine"
+version = "0.1.0"
+description = "traderj trading engine"
+authors = ["whoana"]
+packages = [{include = "engine"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+traderj-shared = {path = "../shared", develop = true}
+ccxt = "^4.4"
+pandas = "^2.2"
+pandas-ta = "*"
+numpy = "^2.0"
+asyncpg = "*"
+aiosqlite = "*"
+apscheduler = "^3.10"
+structlog = "*"
+prometheus-client = "*"
+pydantic-settings = "*"
+python-telegram-bot = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+factory-boy = "*"
+ruff = "*"
+mypy = "*"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
