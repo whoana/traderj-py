@@ -221,7 +221,7 @@ class TestStopLoss:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY, price=95_000_000))
-        pm.set_stop_loss("STR-001", Decimal("94_500_000"))
+        await pm.set_stop_loss("STR-001", Decimal("94_500_000"))
 
         await pm.on_market_tick(make_tick(price=94_400_000))
 
@@ -236,7 +236,7 @@ class TestStopLoss:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY, price=95_000_000))
-        pm.set_stop_loss("STR-001", Decimal("94_500_000"))
+        await pm.set_stop_loss("STR-001", Decimal("94_500_000"))
 
         await pm.on_market_tick(make_tick(price=94_600_000))
 
@@ -250,7 +250,7 @@ class TestStopLoss:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY))
-        result = pm.set_stop_loss("STR-001", Decimal("93_000_000"))
+        result = await pm.set_stop_loss("STR-001", Decimal("93_000_000"))
         assert result is True
 
         pos = pm.get_position("STR-001")
@@ -263,7 +263,7 @@ class TestStopLoss:
         bus = FakeEventBus()
         pm = PositionManager(data_store=store, event_bus=bus)
 
-        result = pm.set_stop_loss("UNKNOWN", Decimal("90_000_000"))
+        result = await pm.set_stop_loss("UNKNOWN", Decimal("90_000_000"))
         assert result is False
 
 
@@ -313,7 +313,7 @@ class TestTakeProfit:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY, price=95_000_000))
-        pm.set_take_profit("STR-001", Decimal("97_000_000"))
+        await pm.set_take_profit("STR-001", Decimal("97_000_000"))
 
         await pm.on_market_tick(make_tick(price=97_100_000))
 
@@ -329,7 +329,7 @@ class TestTakeProfit:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY, price=95_000_000))
-        pm.set_take_profit("STR-001", Decimal("97_000_000"))
+        await pm.set_take_profit("STR-001", Decimal("97_000_000"))
 
         await pm.on_market_tick(make_tick(price=96_500_000))
 
@@ -343,7 +343,7 @@ class TestTakeProfit:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY))
-        result = pm.set_take_profit("STR-001", Decimal("99_000_000"))
+        result = await pm.set_take_profit("STR-001", Decimal("99_000_000"))
         assert result is True
 
         pos = pm.get_position("STR-001")
@@ -356,7 +356,7 @@ class TestTakeProfit:
         bus = FakeEventBus()
         pm = PositionManager(data_store=store, event_bus=bus)
 
-        result = pm.set_take_profit("UNKNOWN", Decimal("99_000_000"))
+        result = await pm.set_take_profit("UNKNOWN", Decimal("99_000_000"))
         assert result is False
 
     @pytest.mark.asyncio
@@ -367,7 +367,7 @@ class TestTakeProfit:
         pm = PositionManager(data_store=store, event_bus=bus)
 
         await pm.on_order_filled(make_fill(side=OrderSide.BUY, price=95_000_000))
-        pm.set_take_profit("STR-001", Decimal("97_000_000"))
+        await pm.set_take_profit("STR-001", Decimal("97_000_000"))
         # SL not set, so only TP fires
         await pm.on_market_tick(make_tick(price=97_500_000))
 

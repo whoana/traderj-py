@@ -1,0 +1,11 @@
+{
+  "feature": "traderj-improvement",
+  "phase": "check",
+  "matchRate": 100,
+  "iterationCount": 0,
+  "startedAt": "2026-03-17T00:00:00Z",
+  "planDoc": "docs/01-plan/features/traderj-improvement.plan.md",
+  "designDoc": null,
+  "analysisDoc": null,
+  "reportDoc": null
+}

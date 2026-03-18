@@ -151,8 +151,8 @@ class PositionManager:
         )
         return True
 
-    def set_take_profit(self, strategy_id: str, take_profit: Decimal) -> bool:
-        """Set take-profit target for an open position."""
+    async def set_take_profit(self, strategy_id: str, take_profit: Decimal) -> bool:
+        """Set take-profit target for an open position and persist to DB."""
         pos = self._positions.get(strategy_id)
         if pos is None:
             return False
@@ -175,6 +175,7 @@ class PositionManager:
             take_profit=take_profit,
         )
         self._positions[strategy_id] = updated
+        await self._store.save_position(updated)
         return True
 
     # ── Internal ─────────────────────────────────────────────────────
@@ -375,8 +376,8 @@ class PositionManager:
             pos.take_profit,
         )
 
-    def set_stop_loss(self, strategy_id: str, stop_loss: Decimal) -> bool:
-        """Update stop loss for an open position."""
+    async def set_stop_loss(self, strategy_id: str, stop_loss: Decimal) -> bool:
+        """Update stop loss for an open position and persist to DB."""
         pos = self._positions.get(strategy_id)
         if pos is None:
             return False
@@ -399,6 +400,7 @@ class PositionManager:
             take_profit=pos.take_profit,
         )
         self._positions[strategy_id] = updated
+        await self._store.save_position(updated)
         return True
 
     @staticmethod

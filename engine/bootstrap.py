@@ -202,6 +202,7 @@ async def bootstrap(
             app.event_bus,
             components["position_manager"],
             components["risk_manager"],
+            components["trading_loop"],
         )
 
     # Store trading loops map on app for multi-strategy access
@@ -219,18 +220,22 @@ async def bootstrap(
     return app
 
 
-def _wire_event_subscriptions(event_bus, pos_mgr, risk_mgr) -> None:
+def _wire_event_subscriptions(event_bus, pos_mgr, risk_mgr, trading_loop) -> None:
     """Subscribe event handlers for a strategy's components."""
     from shared.events import (
         MarketTickEvent,
         OrderFilledEvent,
         PositionClosedEvent,
+        StopLossTriggeredEvent,
+        TakeProfitTriggeredEvent,
     )
 
     event_bus.subscribe(OrderFilledEvent, pos_mgr.on_order_filled)
     event_bus.subscribe(MarketTickEvent, pos_mgr.on_market_tick)
     event_bus.subscribe(OrderFilledEvent, risk_mgr.on_order_filled)
     event_bus.subscribe(PositionClosedEvent, risk_mgr.on_position_closed)
+    event_bus.subscribe(StopLossTriggeredEvent, trading_loop._on_stop_loss_triggered)
+    event_bus.subscribe(TakeProfitTriggeredEvent, trading_loop._on_take_profit_triggered)
 
 
 def _make_command_handler(trading_loops: dict[str, TradingLoop]):

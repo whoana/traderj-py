@@ -45,6 +45,8 @@ from shared.events import (
     OrderRequestEvent,
     RegimeChangeEvent,
     SignalEvent,
+    StopLossTriggeredEvent,
+    TakeProfitTriggeredEvent,
 )
 from shared.models import Candle, DailyPnL, PaperBalance, Signal
 
@@ -418,12 +420,12 @@ class TradingLoop:
             decision = self._risk_mgr.get_last_decision(self._strategy_id)
             if decision:
                 if decision.stop_loss_price > 0:
-                    self._position_mgr.set_stop_loss(
+                    await self._position_mgr.set_stop_loss(
                         self._strategy_id,
                         Decimal(str(int(decision.stop_loss_price))),
                     )
                 if decision.take_profit_price > 0:
-                    self._position_mgr.set_take_profit(
+                    await self._position_mgr.set_take_profit(
                         self._strategy_id,
                         Decimal(str(int(decision.take_profit_price))),
                     )
@@ -464,6 +466,54 @@ class TradingLoop:
             logger.info("SELL executed: %s BTC", pos.amount)
         else:
             logger.warning("SELL failed: %s", result.reason)
+
+    async def _on_stop_loss_triggered(self, event: StopLossTriggeredEvent) -> None:
+        """Stop loss 트리거 시 즉시 시장가 청산 주문 실행."""
+        if event.strategy_id != self._strategy_id:
+            return
+        pos = self._position_mgr.get_position(self._strategy_id)
+        if pos is None:
+            return
+        request = OrderRequestEvent(
+            strategy_id=self._strategy_id,
+            symbol=self._symbol,
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            amount=pos.amount,
+            idempotency_key=f"{self._strategy_id}-sl-{uuid.uuid4().hex[:8]}",
+        )
+        result = await self._order_mgr.handle_order_request(request)
+        if result.success:
+            logger.warning(
+                "Stop loss executed: %s BTC sold at market (stop=%s)",
+                pos.amount, event.stop_loss_price,
+            )
+        else:
+            logger.error("Stop loss sell FAILED: %s", result.reason)
+
+    async def _on_take_profit_triggered(self, event: TakeProfitTriggeredEvent) -> None:
+        """Take profit 트리거 시 즉시 시장가 청산 주문 실행."""
+        if event.strategy_id != self._strategy_id:
+            return
+        pos = self._position_mgr.get_position(self._strategy_id)
+        if pos is None:
+            return
+        request = OrderRequestEvent(
+            strategy_id=self._strategy_id,
+            symbol=self._symbol,
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            amount=pos.amount,
+            idempotency_key=f"{self._strategy_id}-tp-{uuid.uuid4().hex[:8]}",
+        )
+        result = await self._order_mgr.handle_order_request(request)
+        if result.success:
+            logger.info(
+                "Take profit executed: %s BTC sold at market (target=%s)",
+                pos.amount, event.take_profit_price,
+            )
+        else:
+            logger.error("Take profit sell FAILED: %s", result.reason)
 
     # ── IPC command processing ───────────────────────────────────
 

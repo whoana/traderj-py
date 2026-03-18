@@ -86,12 +86,31 @@ class MacroCollector:
             return 50.0
 
     async def _fetch_funding_rate(self) -> float:
-        """Fetch BTC perpetual funding rate. Default 0.01%."""
-        return 0.01  # TODO: implement exchange-specific API
+        """Fetch BTC perpetual funding rate from Binance Futures. Default 0.01%."""
+        if self._http is None:
+            return 0.01
+        try:
+            resp = await self._http.get(
+                "https://fapi.binance.com/fapi/v1/fundingRate",
+                params={"symbol": "BTCUSDT", "limit": 1},
+            )
+            if resp and isinstance(resp, list) and len(resp) > 0:
+                return float(resp[0].get("fundingRate", 0.01))
+        except Exception:
+            logger.warning("Funding rate fetch failed, using default 0.01%%")
+        return 0.01
 
     async def _fetch_btc_dominance(self) -> float:
-        """Fetch BTC market dominance. Default 50%."""
-        return 50.0  # TODO: implement CoinGecko/CoinMarketCap API
+        """Fetch BTC market dominance from CoinGecko. Default 50%."""
+        if self._http is None:
+            return 50.0
+        try:
+            resp = await self._http.get("https://api.coingecko.com/api/v3/global")
+            pct = resp.get("data", {}).get("market_cap_percentage", {})
+            return float(pct.get("btc", 50.0))
+        except Exception:
+            logger.warning("BTC dominance fetch failed, using default 50%%")
+        return 50.0
 
     async def _fetch_dxy(self) -> float:
         """Fetch US Dollar Index. Default 104.0."""
