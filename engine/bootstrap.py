@@ -236,6 +236,7 @@ def _wire_event_subscriptions(event_bus, pos_mgr, risk_mgr, trading_loop) -> Non
     event_bus.subscribe(PositionClosedEvent, risk_mgr.on_position_closed)
     event_bus.subscribe(StopLossTriggeredEvent, trading_loop._on_stop_loss_triggered)
     event_bus.subscribe(TakeProfitTriggeredEvent, trading_loop._on_take_profit_triggered)
+    event_bus.subscribe(PositionClosedEvent, trading_loop._on_position_closed)
 
 
 def _make_command_handler(trading_loops: dict[str, TradingLoop]):

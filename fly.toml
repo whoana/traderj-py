@@ -1,0 +1,20 @@
+app = 'traderj-engine'
+primary_region = 'nrt'
+
+[build]
+  dockerfile = "engine/Dockerfile"
+  target = "production"
+
+[env]
+  DB_TYPE = "sqlite"
+  DB_SQLITE_PATH = "/data/traderj.db"
+  PYTHONUNBUFFERED = "1"
+
+[mounts]
+  source = "traderj_data"
+  destination = "/data"
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

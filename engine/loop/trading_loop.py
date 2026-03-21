@@ -30,7 +30,7 @@ from engine.strategy.dca import DCAEngine
 from engine.strategy.grid import GridEngine
 from engine.strategy.indicators import compute_indicators
 from engine.strategy.regime import RegimeConfig, detect_regime
-from engine.strategy.regime_switch import RegimeSwitchManager
+from engine.strategy.regime_switch import RegimeSwitchManager, SwitchDecision
 from engine.strategy.signal import SignalGenerator, SignalResult
 from shared.enums import (
     BotStateEnum,
@@ -43,6 +43,7 @@ from shared.events import (
     MarketTickEvent,
     OHLCVUpdateEvent,
     OrderRequestEvent,
+    PositionClosedEvent,
     RegimeChangeEvent,
     SignalEvent,
     StopLossTriggeredEvent,
@@ -90,6 +91,9 @@ class TradingLoop:
         self._dca_engine: DCAEngine | None = None
         self._grid_engine: GridEngine | None = None
         self._last_pnl_date: datetime | None = None
+        # Pending regime switch: waiting for position close before activating new preset
+        self._pending_switch_preset: str | None = None
+        self._pending_switch_regime: Any = None
 
     @property
     def strategy_id(self) -> str:
@@ -248,7 +252,13 @@ class TradingLoop:
     # ── Regime detection ────────────────────────────────────────
 
     async def _check_regime_switch(self, ohlcv_by_tf: dict[str, pd.DataFrame]) -> None:
-        """Detect market regime and switch strategy preset if needed."""
+        """Detect market regime and switch strategy preset if needed.
+
+        Hybrid position handling on switch:
+        - No position: apply new preset immediately
+        - Position with profit or small loss (< threshold): close immediately, apply new preset
+        - Position with large loss (>= threshold): tighten SL for natural close, defer preset
+        """
         if self._regime_mgr is None:
             return
 
@@ -275,25 +285,122 @@ class TradingLoop:
         if decision.should_switch:
             old_regime = self._regime_mgr.current_regime
             new_preset_id = self._regime_mgr.apply_switch(decision)
-            preset = self._regime_mgr.get_preset(new_preset_id)
-            if preset:
-                self._signal_gen.apply_preset(preset)
-                logger.info(
-                    "Regime auto-switch: %s → %s (regime=%s, confidence=%.2f)",
-                    decision.reason, new_preset_id,
-                    decision.current_regime, decision.confidence,
+            current_price = self._get_last_close(ohlcv_by_tf)
+
+            # Handle existing position before applying new preset
+            has_position = self._position_mgr.has_open_position(self._strategy_id)
+            switch_cfg = self._regime_mgr.config
+
+            if has_position and switch_cfg.close_position_on_switch:
+                pos = self._position_mgr.get_position(self._strategy_id)
+                if pos is not None:
+                    unrealized_pnl_pct = float(
+                        (Decimal(str(current_price)) - pos.entry_price)
+                        / pos.entry_price
+                    )
+
+                    if unrealized_pnl_pct >= -switch_cfg.loss_threshold_pct:
+                        # Profit or small loss → immediate close
+                        logger.info(
+                            "Regime switch: closing position (pnl=%.2f%%, threshold=-%.2f%%)",
+                            unrealized_pnl_pct * 100,
+                            switch_cfg.loss_threshold_pct * 100,
+                        )
+                        await self._execute_regime_close(pos)
+                        # Apply new preset immediately (position closed)
+                        self._apply_new_preset(
+                            new_preset_id, decision, old_regime, current_price, ohlcv_by_tf
+                        )
+                    else:
+                        # Large loss → tighten SL, defer preset switch
+                        tightened_sl = self._calc_tightened_sl(
+                            pos, current_price, switch_cfg
+                        )
+                        await self._position_mgr.set_stop_loss(
+                            self._strategy_id, tightened_sl
+                        )
+                        self._pending_switch_preset = new_preset_id
+                        self._pending_switch_regime = decision.current_regime
+                        logger.info(
+                            "Regime switch deferred: SL tightened %s → %s "
+                            "(pnl=%.2f%%, waiting for natural close)",
+                            pos.stop_loss,
+                            tightened_sl,
+                            unrealized_pnl_pct * 100,
+                        )
+
+                        await self._bus.publish(RegimeChangeEvent(
+                            strategy_id=self._strategy_id,
+                            old_regime=old_regime,
+                            new_regime=decision.current_regime,
+                            overrides={
+                                "new_preset": new_preset_id,
+                                "deferred": True,
+                                "tightened_sl": str(tightened_sl),
+                            },
+                        ))
+            else:
+                # No position → apply immediately
+                self._apply_new_preset(
+                    new_preset_id, decision, old_regime, current_price, ohlcv_by_tf
                 )
 
-            # Reconfigure DCA/Grid engines for new regime
-            current_price = self._get_last_close(ohlcv_by_tf)
-            self._reconfigure_dca_grid(decision.current_regime, current_price)
+    def _apply_new_preset(
+        self,
+        new_preset_id: str,
+        decision: SwitchDecision,
+        old_regime: Any,
+        current_price: float,
+        ohlcv_by_tf: dict[str, pd.DataFrame],
+    ) -> None:
+        """Apply a new strategy preset and reconfigure DCA/Grid."""
+        preset = self._regime_mgr.get_preset(new_preset_id)
+        if preset:
+            self._signal_gen.apply_preset(preset)
+            logger.info(
+                "Regime auto-switch: %s → %s (regime=%s, confidence=%.2f)",
+                decision.reason, new_preset_id,
+                decision.current_regime, decision.confidence,
+            )
 
-            await self._bus.publish(RegimeChangeEvent(
-                strategy_id=self._strategy_id,
-                old_regime=old_regime,
-                new_regime=decision.current_regime,
-                overrides={"new_preset": new_preset_id},
-            ))
+        self._reconfigure_dca_grid(decision.current_regime, current_price)
+        self._pending_switch_preset = None
+        self._pending_switch_regime = None
+
+    def _calc_tightened_sl(
+        self, pos: Any, current_price: float, switch_cfg: Any
+    ) -> Decimal:
+        """Calculate tightened stop loss for regime switch with large loss."""
+        entry = float(pos.entry_price)
+
+        # Option 1: SL at entry - tightened_sl_pct (e.g. entry - 1.5%)
+        sl_from_entry = entry * (1 - switch_cfg.tightened_sl_pct)
+
+        # Option 2: SL just below current price (min distance)
+        sl_from_current = current_price * (1 - switch_cfg.tightened_sl_min_distance_pct)
+
+        # Use whichever is closer to current price (tighter)
+        tightened = max(sl_from_entry, sl_from_current)
+
+        return Decimal(str(int(tightened)))
+
+    async def _execute_regime_close(self, pos: Any) -> None:
+        """Close position due to regime switch (immediate market sell)."""
+        request = OrderRequestEvent(
+            strategy_id=self._strategy_id,
+            symbol=self._symbol,
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            amount=pos.amount,
+            idempotency_key=f"{self._strategy_id}-regime-{uuid.uuid4().hex[:8]}",
+        )
+        result = await self._order_mgr.handle_order_request(request)
+        if result.success:
+            logger.info(
+                "Regime switch close: sold %s BTC at market", pos.amount
+            )
+        else:
+            logger.error("Regime switch close FAILED: %s", result.reason)
 
     # ── Data fetching ────────────────────────────────────────────
 
@@ -418,12 +525,17 @@ class TradingLoop:
 
             # Set SL/TP/Trailing Stop from risk decision
             decision = self._risk_mgr.get_last_decision(self._strategy_id)
+            if decision and decision.stop_loss_price > 0:
+                sl_price = Decimal(str(int(decision.stop_loss_price)))
+            else:
+                # Fallback: 3% fixed stop loss from entry price
+                sl_price = Decimal(str(int(current_price * 0.97)))
+                logger.warning(
+                    "SL fallback applied (no risk decision): 3%% fixed at %s", sl_price
+                )
+            await self._position_mgr.set_stop_loss(self._strategy_id, sl_price)
+
             if decision:
-                if decision.stop_loss_price > 0:
-                    await self._position_mgr.set_stop_loss(
-                        self._strategy_id,
-                        Decimal(str(int(decision.stop_loss_price))),
-                    )
                 if decision.take_profit_price > 0:
                     await self._position_mgr.set_take_profit(
                         self._strategy_id,
@@ -439,10 +551,12 @@ class TradingLoop:
                     )
                 logger.info(
                     "Risk params set: SL=%s, TP=%s, TrailingActivation=%s",
-                    decision.stop_loss_price,
+                    sl_price,
                     decision.take_profit_price,
                     decision.trailing_stop_activation,
                 )
+            else:
+                logger.info("Risk params set: SL=%s (fallback)", sl_price)
         else:
             logger.warning("BUY failed: %s", result.reason)
 
@@ -514,6 +628,37 @@ class TradingLoop:
             )
         else:
             logger.error("Take profit sell FAILED: %s", result.reason)
+
+    async def _on_position_closed(self, event: PositionClosedEvent) -> None:
+        """Handle position close — activate pending regime switch if waiting."""
+        if event.strategy_id != self._strategy_id:
+            return
+
+        if self._pending_switch_preset is not None:
+            logger.info(
+                "Position closed (reason=%s) — activating deferred regime switch to %s",
+                event.exit_reason,
+                self._pending_switch_preset,
+            )
+            preset = self._regime_mgr.get_preset(self._pending_switch_preset)
+            if preset:
+                self._signal_gen.apply_preset(preset)
+
+            if self._pending_switch_regime is not None:
+                try:
+                    current_price = float(
+                        (await self._exchange.fetch_ticker(self._symbol)).get("last", 0)
+                    )
+                except Exception:
+                    current_price = 0.0
+                self._reconfigure_dca_grid(self._pending_switch_regime, current_price)
+
+            logger.info(
+                "Deferred regime switch activated: preset=%s",
+                self._pending_switch_preset,
+            )
+            self._pending_switch_preset = None
+            self._pending_switch_regime = None
 
     # ── IPC command processing ───────────────────────────────────
 

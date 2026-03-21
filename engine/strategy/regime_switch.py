@@ -42,6 +42,12 @@ class RegimeSwitchConfig:
     enabled: bool = True
     regime_config: RegimeConfig = RegimeConfig()
 
+    # Position handling on regime switch
+    close_position_on_switch: bool = True     # enable hybrid close logic
+    loss_threshold_pct: float = 0.015         # if unrealized loss > 1.5%, tighten SL instead
+    tightened_sl_pct: float = 0.015           # tightened SL distance from entry price
+    tightened_sl_min_distance_pct: float = 0.005  # min SL distance from current price
+
 
 @dataclass
 class SwitchDecision:

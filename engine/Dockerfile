@@ -22,6 +22,13 @@ CMD ["python", "-m", "engine"]
 # --- Production target ---
 FROM base AS production
 RUN cd /app/engine && poetry install --no-interaction --no-root --only main
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
+# Copy scripts (run_paper 등)
+COPY scripts/ /app/scripts/
+
+# /data 디렉토리 생성 (SQLite 볼륨 마운트 지점)
+RUN mkdir -p /data
+
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /data
 USER appuser
-CMD ["python", "-m", "engine"]
+CMD ["python", "-u", "-m", "scripts.run_paper"]

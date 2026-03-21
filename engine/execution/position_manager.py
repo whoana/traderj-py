@@ -51,9 +51,23 @@ class PositionManager:
         return dict(self._positions)
 
     async def load_open_positions(self) -> None:
-        """Load open positions from DB on startup."""
+        """Load open positions from DB on startup.
+
+        If multiple open positions exist for the same strategy_id (should not
+        happen in normal operation), logs a critical warning so the issue can
+        be investigated. Only the last-opened position is kept in memory.
+        """
         positions = await self._store.get_positions(status="open")
+        strategy_counts: dict[str, int] = {}
         for pos in positions:
+            strategy_counts[pos.strategy_id] = strategy_counts.get(pos.strategy_id, 0) + 1
+            if strategy_counts[pos.strategy_id] > 1:
+                logger.critical(
+                    "Multiple open positions detected for strategy %s — "
+                    "only one position per strategy is supported. "
+                    "Run DB maintenance to merge or close duplicates.",
+                    pos.strategy_id,
+                )
             self._positions[pos.strategy_id] = pos
         logger.info("Loaded %d open positions", len(positions))
 
