@@ -23,7 +23,11 @@ CMD ["python", "-m", "engine"]
 FROM base AS production
 RUN cd /app/engine && poetry install --no-interaction --no-root --only main
 
-# Copy scripts (run_paper 등)
+# Install API dependencies (fastapi, uvicorn for embedded mode)
+RUN pip install --no-cache-dir fastapi uvicorn[standard]
+
+# Copy API and scripts
+COPY api/ /app/api/
 COPY scripts/ /app/scripts/
 
 # /data 디렉토리 생성 (SQLite 볼륨 마운트 지점)

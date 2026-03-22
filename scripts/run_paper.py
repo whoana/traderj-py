@@ -1,13 +1,14 @@
 """Run paper trading for a specific strategy locally (no Docker needed).
 
 Uses the configured DataStore (SQLite by default) and Upbit Public API for market data.
+Optionally starts a FastAPI API server on port 8000 (--api flag or API_ENABLED env).
 
 Usage:
     python -m scripts.run_paper                    # default: STR-001, 연속 실행
     python -m scripts.run_paper STR-005            # specific strategy, 연속 실행
     python -m scripts.run_paper STR-001 STR-002    # multiple strategies
     python -m scripts.run_paper --ticks 10 STR-005 # 10회 실행 후 종료
-    python -m scripts.run_paper --ticks 3 STR-001  # 3회 실행 후 종료
+    python -m scripts.run_paper --api              # API 서버 병행 실행
 
 Ctrl+C로 안전하게 종료합니다.
 """
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 from datetime import UTC, datetime
@@ -31,12 +33,42 @@ setup_logging(level="INFO")
 logger = logging.getLogger("paper")
 
 
-async def run_paper(strategy_ids: list[str], ticks: int = 0):
+async def _start_api_server(store, trading_loops, event_bus, exchange, settings):
+    """Start embedded FastAPI server as a background task."""
+    import uvicorn
+
+    from api.main import create_embedded_app
+
+    api_app = create_embedded_app(
+        data_store=store,
+        trading_loops=trading_loops,
+        event_bus=event_bus,
+        exchange=exchange,
+        settings=settings,
+    )
+
+    port = settings.api.port if settings else 8000
+    host = settings.api.host if settings else "0.0.0.0"
+
+    config = uvicorn.Config(
+        app=api_app,
+        host=host,
+        port=port,
+        log_level="warning",
+        access_log=False,
+    )
+    server = uvicorn.Server(config)
+    logger.info("API server starting on %s:%d", host, port)
+    await server.serve()
+
+
+async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = False):
     """Run paper trading for given strategies.
 
     Args:
         strategy_ids: List of strategy IDs to run.
         ticks: Number of trading ticks to execute. 0 = 무한 반복 (Ctrl+C로 종료).
+        enable_api: Start embedded FastAPI server on port 8000.
     """
     continuous = ticks == 0
     mode_label = "연속 실행 (Ctrl+C 종료)" if continuous else f"{ticks}회"
@@ -44,6 +76,8 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0):
     print("=" * 70)
     print(f"  Paper Trading — {', '.join(strategy_ids)}")
     print(f"  Ticks: {mode_label} | Mode: paper | Symbol: BTC/KRW")
+    if enable_api:
+        print(f"  API Server: port 8000")
     print("=" * 70)
     print()
 
@@ -58,6 +92,8 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0):
 
     store = create_data_store(settings.db)
     await store.connect()
+
+    api_task = None
 
     try:
         app = await bootstrap(settings=settings, data_store=store)
@@ -79,10 +115,17 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0):
             await loop.start()
             logger.info("Started %s", sid)
 
+        # Start API server if enabled
+        if enable_api:
+            api_task = asyncio.create_task(
+                _start_api_server(store, trading_loops, app.event_bus, exchange, settings)
+            )
+
         # Engine start notification
+        api_label = " | API: :8000" if enable_api else ""
         await notifier._send(
             f"\U0001f680 <b>Engine Started</b>\n"
-            f"Mode: paper\n"
+            f"Mode: paper{api_label}\n"
             f"Strategies: {', '.join(strategy_ids)}\n"
             f"Ticks: {'continuous' if continuous else ticks}"
         )
@@ -98,6 +141,7 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0):
             stop_event.set()
 
         loop_ref.add_signal_handler(signal.SIGINT, _signal_handler)
+        loop_ref.add_signal_handler(signal.SIGTERM, _signal_handler)
 
         # Run ticks
         tick_num = 0
@@ -187,6 +231,12 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0):
         )
 
         # Cleanup
+        if api_task and not api_task.done():
+            api_task.cancel()
+            try:
+                await api_task
+            except asyncio.CancelledError:
+                pass
         for loop in trading_loops.values():
             await loop.stop()
         await app.event_bus.stop()
@@ -205,10 +255,13 @@ def main():
                         help="Strategy IDs to run (default: STR-001)")
     parser.add_argument("--ticks", type=int, default=0,
                         help="Number of ticks to run (default: 0 = continuous)")
+    parser.add_argument("--api", action="store_true", default=False,
+                        help="Enable embedded API server on port 8000")
     args = parser.parse_args()
 
     strategy_ids = args.strategies
     ticks = args.ticks
+    enable_api = args.api or os.environ.get("API_ENABLED", "").lower() in ("1", "true", "yes")
 
     # Validate strategy IDs
     from engine.strategy.presets import STRATEGY_PRESETS
@@ -219,7 +272,7 @@ def main():
             sys.exit(1)
 
     print(f"Strategies: {strategy_ids}")
-    asyncio.run(run_paper(strategy_ids, ticks=ticks))
+    asyncio.run(run_paper(strategy_ids, ticks=ticks, enable_api=enable_api))
 
 
 if __name__ == "__main__":
