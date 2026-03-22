@@ -24,7 +24,12 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
         className,
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <span className="relative h-1.5 w-1.5">
+        {status === "running" && (
+          <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-75" />
+        )}
+        <span className="relative block h-1.5 w-1.5 rounded-full bg-current" />
+      </span>
       {label ?? status}
     </span>
   );

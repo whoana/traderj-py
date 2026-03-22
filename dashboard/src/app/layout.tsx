@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { TopNav } from "@/components/layout/TopNav";
+import { BottomNav } from "@/components/layout/BottomNav";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,7 +33,8 @@ export default function RootLayout({
       <body className={`${inter.variable} ${jetbrains.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <TopNav />
-          <main className="mx-auto max-w-7xl px-3 pb-6 pt-3 sm:px-4 sm:pb-8 sm:pt-4">{children}</main>
+          <main className="mx-auto max-w-7xl px-3 pb-20 pt-3 sm:px-4 sm:pb-8 sm:pt-4">{children}</main>
+          <BottomNav />
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>

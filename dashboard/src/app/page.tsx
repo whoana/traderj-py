@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/Card";
 import { PnLText } from "@/components/ui/PnLText";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
 import { formatKRW } from "@/lib/format";
@@ -96,6 +97,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
+  const [showStopDialog, setShowStopDialog] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -138,13 +140,12 @@ export default function DashboardPage() {
   }, [fetchAll]);
 
   const handleEmergencyStop = async () => {
-    if (!confirm("Emergency Stop: 모든 거래를 즉시 중단합니다. 계속하시겠습니까?")) return;
+    setShowStopDialog(false);
     setStopping(true);
     try {
       await api.post("/engine/engine/stop");
       await fetchAll();
     } catch {
-      // refetch to get latest status
       await fetchAll();
     } finally {
       setStopping(false);
@@ -198,7 +199,7 @@ export default function DashboardPage() {
           </span>
         </div>
         <button
-          onClick={handleEmergencyStop}
+          onClick={() => setShowStopDialog(true)}
           disabled={stopping || engine?.status !== "running"}
           className="flex items-center gap-1 rounded-md bg-status-error px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-white transition-colors hover:bg-status-error/80 disabled:opacity-50"
         >
@@ -342,6 +343,16 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={showStopDialog}
+        title="Engine Stop"
+        description="엔진을 정지합니까? 트레이딩이 중단되며, 열린 포지션은 유지됩니다. API 서버는 계속 실행됩니다."
+        confirmLabel="Stop Engine"
+        variant="danger"
+        onConfirm={handleEmergencyStop}
+        onCancel={() => setShowStopDialog(false)}
+      />
     </div>
   );
 }
