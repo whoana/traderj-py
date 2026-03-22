@@ -3,7 +3,7 @@ name = "traderj-engine"
 version = "0.1.0"
 description = "traderj trading engine"
 authors = ["whoana"]
-packages = [{include = "engine"}]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.13"

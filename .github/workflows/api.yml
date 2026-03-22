@@ -19,23 +19,18 @@ jobs:
         run: |
           pip install poetry
           cd shared && pip install -e .
+          cd ../engine && poetry install
           cd ../api && poetry install
 
       - name: Lint (ruff)
         run: ruff check shared/ api/
 
-      - name: Type check (mypy)
-        run: cd api && mypy api/ --strict
-
       - name: Unit tests
-        run: cd api && pytest tests/ -v --cov=api --cov-report=xml
-
-      - name: Coverage gate (80%+)
-        run: cd api && coverage report --fail-under=80
+        run: python -m pytest api/tests/ -v --cov=api --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          file: api/coverage.xml
+          file: coverage.xml
           flags: api

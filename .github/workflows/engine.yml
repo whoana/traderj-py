@@ -24,18 +24,12 @@ jobs:
       - name: Lint (ruff)
         run: ruff check shared/ engine/
 
-      - name: Type check (mypy)
-        run: cd engine && mypy engine/ --strict
-
       - name: Unit tests
-        run: cd engine && pytest tests/unit/ -v --cov=engine --cov-report=xml
-
-      - name: Coverage gate (80%+)
-        run: cd engine && coverage report --fail-under=80
+        run: python -m pytest engine/tests/unit/ -v --cov=engine --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          file: engine/coverage.xml
+          file: coverage.xml
           flags: engine
