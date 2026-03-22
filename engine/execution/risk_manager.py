@@ -10,7 +10,7 @@ Bridges strategy/risk.py (ATR-based decisions) with the execution pipeline:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from engine.strategy.risk import RiskConfig, RiskDecision, RiskEngine
@@ -70,7 +70,7 @@ class RiskManager:
             strategy_id=strategy_id,
             consecutive_losses=engine.consecutive_losses,
             daily_pnl=Decimal(str(engine.daily_pnl)),
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
             cooldown_until=engine.cooldown_until,
         )
         await self._store.save_risk_state(state)

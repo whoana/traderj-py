@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from shared.enums import EntryMode, ScoringMode, SignalDirection
 from engine.strategy.filters import (
     breakout_score,
     momentum_score,
@@ -17,13 +16,14 @@ from engine.strategy.filters import (
     trend_score,
     volume_score,
 )
-from engine.strategy.scoring import ScoreWeights, TimeframeScore, default_weights
-from engine.strategy.mtf import aggregate_mtf, check_daily_gate, DailyGateResult
-from engine.strategy.risk import RiskConfig, RiskDecision, RiskEngine
-from engine.strategy.signal import SignalGenerator, SignalResult
-from engine.strategy.presets import STRATEGY_PRESETS, StrategyPreset
-from engine.strategy.indicators import compute_indicators, IndicatorConfig
+from engine.strategy.indicators import compute_indicators
+from engine.strategy.mtf import aggregate_mtf, check_daily_gate
 from engine.strategy.normalizer import normalize_indicators
+from engine.strategy.presets import STRATEGY_PRESETS
+from engine.strategy.risk import RiskConfig, RiskEngine
+from engine.strategy.scoring import ScoreWeights, TimeframeScore, default_weights
+from engine.strategy.signal import SignalGenerator, SignalResult
+from shared.enums import EntryMode, ScoringMode, SignalDirection
 
 
 def _make_ohlcv(n: int = 350, base_price: float = 50_000_000) -> pd.DataFrame:

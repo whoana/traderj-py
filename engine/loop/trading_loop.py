@@ -20,7 +20,6 @@ from typing import Any
 
 import pandas as pd
 
-from engine.execution.circuit_breaker import CircuitBreaker
 from engine.execution.order_manager import OrderManager
 from engine.execution.position_manager import PositionManager
 from engine.execution.risk_manager import RiskManager
@@ -29,7 +28,7 @@ from engine.loop.state import ACTIVE_STATES, StateMachine
 from engine.strategy.dca import DCAEngine
 from engine.strategy.grid import GridEngine
 from engine.strategy.indicators import compute_indicators
-from engine.strategy.regime import RegimeConfig, detect_regime
+from engine.strategy.regime import detect_regime
 from engine.strategy.regime_switch import RegimeSwitchManager, SwitchDecision
 from engine.strategy.signal import SignalGenerator, SignalResult
 from shared.enums import (
@@ -41,7 +40,6 @@ from shared.enums import (
 )
 from shared.events import (
     MarketTickEvent,
-    OHLCVUpdateEvent,
     OrderRequestEvent,
     PositionClosedEvent,
     RegimeChangeEvent,

@@ -19,12 +19,12 @@ from typing import Any
 
 from engine.app import AppOrchestrator
 from engine.config.settings import AppSettings
+from engine.data.macro import MacroCollector
+from engine.exchange.upbit_client import UpbitExchangeClient
 from engine.execution.circuit_breaker import CircuitBreaker
 from engine.execution.order_manager import OrderManager
 from engine.execution.position_manager import PositionManager
 from engine.execution.risk_manager import RiskManager
-from engine.exchange.upbit_client import UpbitExchangeClient
-from engine.data.macro import MacroCollector
 from engine.loop.ipc_server import IPCServer
 from engine.loop.state import StateMachine
 from engine.loop.trading_loop import TradingLoop

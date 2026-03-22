@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from api.deps import get_exchange, get_loops, get_store
+from api.deps import get_exchange, get_loops
 from api.middleware.auth import verify_api_key
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ async def close_position(
         }
     except Exception as e:
         logger.exception("Failed to close position for %s", req.strategy_id)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/position/sl")

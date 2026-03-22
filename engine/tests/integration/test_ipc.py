@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import tempfile
 
 import pytest
 
@@ -101,7 +100,7 @@ async def test_multiple_clients_receive_broadcast(ipc_server, socket_path):
         "state": "running",
     })
 
-    for reader, writer in readers_writers:
+    for reader, _writer in readers_writers:
         line = await asyncio.wait_for(reader.readline(), timeout=2.0)
         msg = json.loads(line.decode().strip())
         assert msg["event_type"] == "BotStateChangeEvent"

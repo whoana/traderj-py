@@ -1,6 +1,6 @@
 """Tests for StateMachine, OHLCVCollector, MacroCollector."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -16,7 +16,6 @@ from engine.loop.state import (
 from shared.enums import BotStateEnum, TradingMode
 from shared.events import BotStateChangeEvent, OHLCVUpdateEvent
 from shared.models import BotStateModel, Candle, MacroSnapshot
-
 
 # ── Fakes ────────────────────────────────────────────────────────────
 
@@ -77,7 +76,7 @@ class TestStateMachineInit:
             strategy_id="STR-001",
             state=BotStateEnum.SCANNING,
             trading_mode=TradingMode.PAPER,
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
         )
         sm = StateMachine("STR-001", TradingMode.PAPER, store, FakeEventBus())
         loaded = await sm.load_state()
@@ -197,7 +196,7 @@ class TestOHLCVCollector:
     @pytest.mark.asyncio
     async def test_collect_stores_and_publishes(self):
         candle = Candle(
-            time=datetime.now(timezone.utc),
+            time=datetime.now(UTC),
             symbol="BTC/KRW",
             timeframe="1h",
             open=Decimal("95000000"),
@@ -232,7 +231,7 @@ class TestOHLCVCollector:
     @pytest.mark.asyncio
     async def test_collect_all_timeframes(self):
         candle = Candle(
-            time=datetime.now(timezone.utc),
+            time=datetime.now(UTC),
             symbol="BTC/KRW",
             timeframe="1h",
             open=Decimal("95000000"),

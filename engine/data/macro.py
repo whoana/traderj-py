@@ -7,7 +7,7 @@ Calculates a composite market_score from component values.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -52,7 +52,7 @@ class MacroCollector:
             )
 
             snapshot = MacroSnapshot(
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 fear_greed=fear_greed,
                 funding_rate=funding_rate,
                 btc_dominance=btc_dominance,

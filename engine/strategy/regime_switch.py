@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from engine.strategy.dca import DCAConfig
 from engine.strategy.grid import GridConfig
@@ -19,13 +19,10 @@ from engine.strategy.regime import (
     REGIME_PRESET_MAP,
     RegimeConfig,
     RegimeResult,
-    detect_regime,
 )
 from engine.strategy.regime_config import (
     DCA_REGIME_MAP,
     GRID_REGIME_MAP,
-    DCARegimePreset,
-    GridRegimePreset,
     build_grid_config,
 )
 from shared.enums import RegimeType

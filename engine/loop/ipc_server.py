@@ -11,7 +11,9 @@ import asyncio
 import json
 import logging
 import os
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from datetime import UTC
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +106,10 @@ class IPCServer:
 
     async def _handle_command(self, msg: dict) -> None:
         """Process a bot control command from API."""
-        from shared.models import BotCommand
-        from datetime import datetime, timezone
         import uuid
+        from datetime import datetime
+
+        from shared.models import BotCommand
 
         cmd = BotCommand(
             id=str(uuid.uuid4()),
@@ -114,7 +117,7 @@ class IPCServer:
             strategy_id=msg.get("strategy_id", ""),
             params=msg.get("params", {}),
             status="pending",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         await self.data_store.save_bot_command(cmd)
         logger.info("IPC command queued: %s %s", cmd.command, cmd.strategy_id)

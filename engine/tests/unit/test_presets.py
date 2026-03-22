@@ -9,17 +9,16 @@ import pytest
 
 from engine.strategy.presets import (
     DEFAULT_PRESET,
-    STRATEGY_PRESETS,
     STR_001,
     STR_002,
     STR_003,
     STR_004,
     STR_005,
     STR_006,
+    STRATEGY_PRESETS,
     StrategyPreset,
 )
 from shared.enums import EntryMode, ScoringMode
-
 
 ALL_PRESETS = [DEFAULT_PRESET, STR_001, STR_002, STR_003, STR_004, STR_005, STR_006]
 

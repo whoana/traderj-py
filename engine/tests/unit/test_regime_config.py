@@ -2,27 +2,22 @@
 
 from __future__ import annotations
 
-import pytest
-
 from engine.strategy.dca import DCAConfig
 from engine.strategy.grid import GridConfig, GridType
 from engine.strategy.regime_config import (
-    DCA_REGIME_MAP,
     DCA_RANGING_HIGH_VOL,
     DCA_RANGING_LOW_VOL,
+    DCA_REGIME_MAP,
     DCA_TRENDING_HIGH_VOL,
     DCA_TRENDING_LOW_VOL,
-    GRID_REGIME_MAP,
     GRID_RANGING_HIGH_VOL,
     GRID_RANGING_LOW_VOL,
+    GRID_REGIME_MAP,
     GRID_TRENDING_HIGH_VOL,
     GRID_TRENDING_LOW_VOL,
-    DCARegimePreset,
-    GridRegimePreset,
     build_grid_config,
 )
 from shared.enums import RegimeType
-
 
 # ── DCA Regime Preset Tests ──────────────────────────────────────
 

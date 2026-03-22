@@ -22,17 +22,22 @@ from api.middleware.metrics import PrometheusMiddleware, metrics_endpoint
 from api.middleware.security import SecurityHeadersMiddleware, SensitiveDataFilter
 from api.routes import (
     analytics,
+    balance,
     bots,
     candles,
+    config,
+    control,
+    engine,
     health,
     macro,
     orders,
+    passkeys,
     pnl,
     positions,
     risk,
     signals,
+    version,
 )
-from api.routes import balance, config, control, engine, passkeys, version
 from api.ws import handler as ws_handler
 from api.ws.manager import manager as ws_manager
 

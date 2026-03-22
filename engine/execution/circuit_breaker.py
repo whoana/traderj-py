@@ -48,11 +48,7 @@ class CircuitBreaker:
 
     def allow_request(self) -> bool:
         s = self.state
-        if s == CBState.CLOSED:
-            return True
-        if s == CBState.HALF_OPEN:
-            return True  # single trial allowed
-        return False  # OPEN
+        return s in (CBState.CLOSED, CBState.HALF_OPEN)
 
     def record_success(self) -> None:
         prev = self._state

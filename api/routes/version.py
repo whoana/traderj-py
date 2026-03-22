@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import platform
 import subprocess
-import time
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends

@@ -15,7 +15,7 @@ Example with 1000 bars, is_size=500, oos_size=100, step_size=100:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd

@@ -7,7 +7,6 @@ import pytest
 from engine.strategy.tiered_exit import (
     TieredExitConfig,
     TieredExitManager,
-    TierLevel,
 )
 
 

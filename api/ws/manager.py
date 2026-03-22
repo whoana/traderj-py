@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -140,10 +141,8 @@ class ConnectionManager:
             for ws in stale:
                 logger.warning("WS heartbeat timeout, disconnecting")
                 await self.disconnect(ws)
-                try:
+                with contextlib.suppress(Exception):
                     await ws.close(code=1001, reason="Heartbeat timeout")
-                except Exception:
-                    pass
 
             # Ping remaining
             ping_msg = json.dumps({"type": "ping"})

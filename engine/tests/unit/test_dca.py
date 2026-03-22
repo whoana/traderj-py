@@ -2,9 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
-import pytest
-
-from engine.strategy.dca import DCAConfig, DCADecision, DCAEngine
+from engine.strategy.dca import DCAConfig, DCAEngine
 
 
 class TestDCABasicBuy:

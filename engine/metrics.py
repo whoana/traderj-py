@@ -6,7 +6,6 @@ Exposes an HTTP endpoint on PROMETHEUS_PORT (default 8001) for scraping.
 from __future__ import annotations
 
 import os
-from threading import Thread
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 

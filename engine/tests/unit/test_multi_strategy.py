@@ -12,10 +12,9 @@ Tests:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-import pandas as pd
 import pytest
 
 from engine.bootstrap import bootstrap
@@ -23,9 +22,8 @@ from engine.config.settings import AppSettings
 from engine.data.sqlite_store import SqliteDataStore
 from engine.loop.trading_loop import TradingLoop
 from engine.strategy.signal import SignalGenerator
-from shared.enums import BotStateEnum, SignalDirection, TradingMode
-from shared.models import Candle, PaperBalance
-
+from shared.enums import BotStateEnum, SignalDirection
+from shared.models import Candle
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
@@ -48,7 +46,7 @@ class FakeExchange:
         candles = []
         base = self.price
         for i in range(limit):
-            t = datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(hours=i)
+            t = datetime(2024, 1, 1, tzinfo=UTC) + timedelta(hours=i)
             variation = 1 + (i % 7 - 3) * 0.005
             close_price = base * variation
             candles.append(Candle(

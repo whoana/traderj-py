@@ -12,7 +12,6 @@ import pytest
 
 from engine.strategy.indicators import IndicatorConfig, compute_indicators
 from engine.strategy.normalizer import (
-    DEFAULT_LOOKBACK,
     normalize_indicators,
     z_score,
     z_to_score,

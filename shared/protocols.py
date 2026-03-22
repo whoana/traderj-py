@@ -11,10 +11,8 @@ from decimal import Decimal
 from typing import Any, Protocol, runtime_checkable
 
 from shared.enums import (
-    BotStateEnum,
     OrderSide,
     OrderType,
-    TradingMode,
 )
 from shared.models import (
     BacktestResult,

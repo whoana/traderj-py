@@ -16,12 +16,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from engine.execution.circuit_breaker import CircuitBreaker
-from shared.enums import OrderSide, OrderStatus, OrderType, TradingMode
+from shared.enums import OrderSide, OrderStatus, TradingMode
 from shared.events import OrderFilledEvent, OrderRequestEvent, RiskAlertEvent
 from shared.models import Order, PaperBalance
 
@@ -92,7 +92,7 @@ class OrderManager:
 
         # [3] Execute order
         order_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if self._mode == TradingMode.PAPER:
             result = await self._execute_paper(event, order_id, now)
@@ -271,7 +271,7 @@ class OrderManager:
                     idempotency_key=pending_order.idempotency_key,
                     created_at=pending_order.created_at,
                     slippage_pct=slippage,
-                    filled_at=datetime.now(timezone.utc),
+                    filled_at=datetime.now(UTC),
                 )
 
             if status in ("cancelled", "failed"):

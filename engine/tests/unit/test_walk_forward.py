@@ -2,25 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC
 
 import pandas as pd
 import pytest
 
-from engine.strategy.backtest.engine import BacktestConfig
 from engine.strategy.backtest.walk_forward import (
     WalkForwardConfig,
     WalkForwardEngine,
     WalkForwardResult,
 )
-from engine.strategy.risk import RiskConfig
 from engine.strategy.signal import SignalGenerator
 from shared.enums import EntryMode, ScoringMode
 
 
 def _make_ohlcv(n_bars: int = 800, base_price: float = 90_000_000.0) -> pd.DataFrame:
     """Create synthetic OHLCV data with trend/range cycles."""
-    dates = pd.date_range("2024-01-01", periods=n_bars, freq="1h", tz=timezone.utc)
+    dates = pd.date_range("2024-01-01", periods=n_bars, freq="1h", tz=UTC)
     price = base_price
     data = {"open": [], "high": [], "low": [], "close": [], "volume": []}
 

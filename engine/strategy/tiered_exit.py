@@ -14,7 +14,7 @@ Also supports tiered take-profit:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class TieredExitManager:
         """
         sl_tiers = []
         for i, (pct, mult) in enumerate(
-            zip(self.config.sl_tier_pcts, self.config.sl_atr_multipliers)
+            zip(self.config.sl_tier_pcts, self.config.sl_atr_multipliers, strict=True)
         ):
             sl_price = entry_price - current_atr * Decimal(str(mult))
             sl_tiers.append(TierLevel(
@@ -100,7 +100,7 @@ class TieredExitManager:
         # Risk per unit = entry - first SL tier
         risk = entry_price - sl_tiers[0].price if sl_tiers else current_atr
         for i, (pct, mult) in enumerate(
-            zip(self.config.tp_tier_pcts, self.config.tp_rr_multipliers)
+            zip(self.config.tp_tier_pcts, self.config.tp_rr_multipliers, strict=True)
         ):
             tp_price = entry_price + risk * Decimal(str(mult))
             tp_tiers.append(TierLevel(

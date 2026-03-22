@@ -7,10 +7,12 @@ Connects to Upbit WebSocket API for ticker and trade data.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import uuid
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 import websockets
 
@@ -43,10 +45,8 @@ class UpbitWebSocketStream:
             self._ws = None
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
         logger.info("Upbit WebSocket stream stopped")
 

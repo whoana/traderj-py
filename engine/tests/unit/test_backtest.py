@@ -11,7 +11,7 @@ Tests:
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
@@ -23,24 +23,22 @@ from engine.strategy.backtest.engine import (
     BacktestTrade,
 )
 from engine.strategy.backtest.metrics import (
-    _max_drawdown,
     _compute_returns,
+    _max_drawdown,
     _sharpe_ratio,
     _sortino_ratio,
     _std,
     compute_metrics,
 )
 from engine.strategy.signal import SignalGenerator
-from engine.strategy.risk import RiskConfig
-from shared.enums import ScoringMode, EntryMode
-
+from shared.enums import EntryMode, ScoringMode
 
 # ── Helpers ──────────────────────────────────────────────────────
 
 
 def _make_ohlcv_df(n_bars: int = 200, base_price: float = 90_000_000.0) -> pd.DataFrame:
     """Create synthetic OHLCV data with a trend pattern."""
-    dates = pd.date_range("2024-01-01", periods=n_bars, freq="1h", tz=timezone.utc)
+    dates = pd.date_range("2024-01-01", periods=n_bars, freq="1h", tz=UTC)
     data = {
         "open": [],
         "high": [],
@@ -55,11 +53,11 @@ def _make_ohlcv_df(n_bars: int = 200, base_price: float = 90_000_000.0) -> pd.Da
         price = price * (1 + change)
         o = price
         h = price * 1.005
-        l = price * 0.995
+        low = price * 0.995
         c = price
         data["open"].append(o)
         data["high"].append(h)
-        data["low"].append(l)
+        data["low"].append(low)
         data["close"].append(c)
         data["volume"].append(10 + i % 5)
 
@@ -148,8 +146,8 @@ class TestComputeMetrics:
         assert metrics["total_return_pct"] == 0.0
 
     def test_single_winning_trade(self):
-        now = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        later = datetime(2024, 1, 2, tzinfo=timezone.utc)
+        now = datetime(2024, 1, 1, tzinfo=UTC)
+        later = datetime(2024, 1, 2, tzinfo=UTC)
         trades = [
             BacktestTrade(
                 trade_id="t1",
@@ -178,7 +176,7 @@ class TestComputeMetrics:
         assert metrics["profit_factor"] == float("inf")
 
     def test_mixed_trades(self):
-        now = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        now = datetime(2024, 1, 1, tzinfo=UTC)
         trades = [
             BacktestTrade("t1", now, now, "long", 90e6, 92e6, 0.01, 20000, 0.02, "sell"),
             BacktestTrade("t2", now, now, "long", 92e6, 90e6, 0.01, -20000, -0.02, "sell"),
@@ -199,7 +197,7 @@ class TestComputeMetrics:
         assert metrics["profit_factor"] == pytest.approx(70000 / 20000, abs=0.01)
 
     def test_max_consecutive(self):
-        now = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        now = datetime(2024, 1, 1, tzinfo=UTC)
         trades = [
             BacktestTrade("t1", now, now, "long", 90e6, 91e6, 0.01, 10000, 0.01, "sell"),
             BacktestTrade("t2", now, now, "long", 90e6, 91e6, 0.01, 10000, 0.01, "sell"),

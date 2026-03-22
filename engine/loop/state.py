@@ -9,7 +9,7 @@ Valid transitions defined in TRANSITIONS map.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from shared.enums import BotStateEnum, TradingMode
 from shared.events import BotStateChangeEvent
@@ -126,7 +126,7 @@ class StateMachine:
             strategy_id=self._strategy_id,
             state=self._state,
             trading_mode=self._trading_mode,
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
         )
         await self._store.save_bot_state(model)
 

@@ -6,14 +6,13 @@ Uses mock exchange and SQLite in-memory store.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pandas as pd
 import pytest
 
 from engine.data.sqlite_store import SqliteDataStore
-from engine.execution.circuit_breaker import CircuitBreaker
 from engine.execution.order_manager import OrderManager
 from engine.execution.position_manager import PositionManager
 from engine.execution.risk_manager import RiskManager
@@ -24,13 +23,11 @@ from engine.strategy.presets import STRATEGY_PRESETS
 from engine.strategy.signal import SignalGenerator
 from shared.enums import (
     BotStateEnum,
-    OrderSide,
     SignalDirection,
     TradingMode,
 )
-from shared.events import OrderFilledEvent, SignalEvent
+from shared.events import OrderFilledEvent
 from shared.models import Candle, PaperBalance
-
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
@@ -58,7 +55,7 @@ class FakeExchange:
         base = self.price
         for i in range(limit):
             # Unique timestamps: each candle 1 hour apart
-            t = datetime(2024, 1, 1, tzinfo=timezone.utc) + __import__("datetime").timedelta(hours=i)
+            t = datetime(2024, 1, 1, tzinfo=UTC) + __import__("datetime").timedelta(hours=i)
             # Add slight price variation to generate meaningful indicators
             variation = 1 + (i % 7 - 3) * 0.005
             close_price = base * variation
@@ -259,7 +256,7 @@ async def test_candles_to_df():
     """_candles_to_df should produce correct DataFrame."""
     candles = [
         Candle(
-            time=datetime(2024, 1, 1, 0, tzinfo=timezone.utc),
+            time=datetime(2024, 1, 1, 0, tzinfo=UTC),
             symbol="BTC/KRW",
             timeframe="1h",
             open=Decimal("90000000"),
@@ -269,7 +266,7 @@ async def test_candles_to_df():
             volume=Decimal("10"),
         ),
         Candle(
-            time=datetime(2024, 1, 1, 1, tzinfo=timezone.utc),
+            time=datetime(2024, 1, 1, 1, tzinfo=UTC),
             symbol="BTC/KRW",
             timeframe="1h",
             open=Decimal("90500000"),
@@ -471,7 +468,6 @@ class TestReconfigureDCAGrid:
 
     async def test_get_last_close(self):
         """_get_last_close should return close from best available TF."""
-        import numpy as np
 
         df_1h = pd.DataFrame(
             {"close": [90_000_000.0, 91_000_000.0]},

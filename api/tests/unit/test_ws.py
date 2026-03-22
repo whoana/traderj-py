@@ -5,13 +5,11 @@ from __future__ import annotations
 import json
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from starlette.testclient import TestClient
 
 from api.deps import app_state
 from api.main import create_app
-from api.ws.manager import ConnectionManager, VALID_CHANNELS
-
+from api.ws.manager import VALID_CHANNELS, ConnectionManager
 
 # ── FakeDataStore (minimal for WS tests) ────────────────────────
 
@@ -148,7 +146,7 @@ async def test_manager_handle_unknown_type():
 
 @pytest.mark.asyncio
 async def test_valid_channels():
-    assert VALID_CHANNELS == {"ticker", "bot_status", "orders", "positions", "signals", "alerts"}
+    assert {"ticker", "bot_status", "orders", "positions", "signals", "alerts"} == VALID_CHANNELS
 
 
 # ── Integration: WebSocket endpoint via TestClient ───────────────
@@ -161,9 +159,8 @@ def test_ws_auth_rejected():
     app = create_app()
     client = TestClient(app)
     # No api_key → should close with 4001
-    with pytest.raises(Exception):
-        with client.websocket_connect("/ws/v1/stream"):
-            pass
+    with pytest.raises(Exception), client.websocket_connect("/ws/v1/stream"):
+        pass
     app_state.data_store = None
 
 

@@ -2,13 +2,10 @@
 
 from datetime import UTC, datetime, timedelta
 
-import pytest
-
 from engine.strategy.regime import RegimeResult
 from engine.strategy.regime_switch import (
     RegimeSwitchConfig,
     RegimeSwitchManager,
-    SwitchDecision,
 )
 from shared.enums import RegimeType
 

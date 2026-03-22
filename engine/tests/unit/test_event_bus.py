@@ -5,15 +5,12 @@ from __future__ import annotations
 import asyncio
 from decimal import Decimal
 
-import pytest
-
 from engine.loop.event_bus import EventBus
+from shared.enums import SignalDirection
 from shared.events import (
     MarketTickEvent,
     SignalEvent,
-    BotStateChangeEvent,
 )
-from shared.enums import BotStateEnum, SignalDirection
 
 
 class TestEventBus:

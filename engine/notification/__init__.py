@@ -7,11 +7,11 @@ from typing import Any
 
 from engine.notification.telegram import TelegramNotifier
 from shared.events import (
+    BotStateChangeEvent,
     OrderFilledEvent,
     PositionClosedEvent,
-    RiskAlertEvent,
-    BotStateChangeEvent,
     RegimeChangeEvent,
+    RiskAlertEvent,
     StopLossTriggeredEvent,
 )
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict

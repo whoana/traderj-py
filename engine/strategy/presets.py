@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from engine.strategy.scoring import HYBRID_WEIGHTS, TREND_FOLLOW_WEIGHTS, ScoreWeights
 from shared.enums import EntryMode, ScoringMode
-from engine.strategy.scoring import ScoreWeights, TREND_FOLLOW_WEIGHTS, HYBRID_WEIGHTS
 
 
 @dataclass(frozen=True)

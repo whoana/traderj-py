@@ -12,8 +12,8 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from shared.enums import EntryMode
 from engine.strategy.scoring import ScoreWeights, TimeframeScore
+from shared.enums import EntryMode
 
 
 @dataclass(frozen=True)
@@ -118,7 +118,7 @@ def _aggregate_majority(
     """Count TFs agreeing on direction. Require majority_min for signal."""
     bullish_count = 0
     bearish_count = 0
-    for tf, score in scores.items():
+    for _tf, score in scores.items():
         combined = score.combined(weights)
         if combined >= buy_threshold:
             bullish_count += 1
@@ -128,8 +128,6 @@ def _aggregate_majority(
     # Use weighted score as magnitude but require majority agreement
     weighted = _aggregate_weighted(scores, weights, tf_weights)
 
-    if bullish_count >= majority_min and weighted > 0:
-        return weighted
-    elif bearish_count >= majority_min and weighted < 0:
+    if bullish_count >= majority_min and weighted > 0 or bearish_count >= majority_min and weighted < 0:
         return weighted
     return 0.0

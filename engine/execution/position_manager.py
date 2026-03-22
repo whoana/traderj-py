@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from shared.enums import OrderSide, PositionStatus
@@ -259,7 +259,7 @@ class PositionManager:
             return
 
         pos_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         position = Position(
             id=pos_id,
@@ -308,7 +308,7 @@ class PositionManager:
             return
 
         realized = self._calc_realized_pnl(pos, event.actual_price)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         closed_pos = Position(
             id=pos.id,

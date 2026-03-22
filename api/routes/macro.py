@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from fastapi import APIRouter, Depends
 
 from api.deps import get_store
@@ -16,10 +18,10 @@ async def get_latest_macro(store=Depends(get_store)):
     snapshot = await store.get_latest_macro()
     if snapshot is None:
         # Return default values when no macro data collected yet
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         return MacroSnapshotResponse(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             fear_greed=50.0,
             funding_rate=0.0,
             btc_dominance=50.0,

@@ -6,7 +6,7 @@ import time
 
 from fastapi import APIRouter, Depends
 
-from api.deps import app_state, get_loops
+from api.deps import get_loops
 from api.middleware.auth import verify_api_key
 
 router = APIRouter(prefix="/engine", tags=["engine"], dependencies=[Depends(verify_api_key)])

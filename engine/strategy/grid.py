@@ -14,8 +14,7 @@ Grid types:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from decimal import Decimal
+from dataclasses import dataclass
 from enum import StrEnum
 
 logger = logging.getLogger(__name__)
@@ -121,27 +120,25 @@ class GridEngine:
 
         for level in self._levels:
             if level.status == GridLevelStatus.PENDING_BUY:
-                if current_price <= level.buy_price:
-                    if self._can_invest():
-                        actions.append(GridAction(
-                            should_act=True,
-                            action="buy",
-                            price=level.buy_price,
-                            amount_krw=self.config.investment_per_grid,
-                            grid_index=level.index,
-                            reason=f"grid_buy_level_{level.index}",
-                        ))
-
-            elif level.status == GridLevelStatus.FILLED_BUY:
-                if current_price >= level.sell_price:
+                if current_price <= level.buy_price and self._can_invest():
                     actions.append(GridAction(
                         should_act=True,
-                        action="sell",
-                        price=level.sell_price,
-                        amount_krw=level.filled_amount * level.sell_price,
+                        action="buy",
+                        price=level.buy_price,
+                        amount_krw=self.config.investment_per_grid,
                         grid_index=level.index,
-                        reason=f"grid_sell_level_{level.index}",
+                        reason=f"grid_buy_level_{level.index}",
                     ))
+
+            elif level.status == GridLevelStatus.FILLED_BUY and current_price >= level.sell_price:
+                actions.append(GridAction(
+                    should_act=True,
+                    action="sell",
+                    price=level.sell_price,
+                    amount_krw=level.filled_amount * level.sell_price,
+                    grid_index=level.index,
+                    reason=f"grid_sell_level_{level.index}",
+                ))
 
         return actions
 

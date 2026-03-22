@@ -18,8 +18,8 @@ from engine.data.sqlite_store import SqliteDataStore
 from engine.execution.risk_manager import RiskManager
 from engine.loop.event_bus import EventBus
 from engine.strategy.risk import RiskConfig
-from shared.enums import AlertSeverity, OrderSide
-from shared.events import OrderFilledEvent, PositionClosedEvent, RiskAlertEvent
+from shared.enums import OrderSide
+from shared.events import PositionClosedEvent, RiskAlertEvent
 
 
 @pytest.fixture

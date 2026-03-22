@@ -1,5 +1,6 @@
 """Tests for PositionManager."""
 
+from datetime import UTC
 from decimal import Decimal
 
 import pytest
@@ -16,7 +17,6 @@ from shared.events import (
     TrailingStopUpdatedEvent,
 )
 from shared.models import Position
-
 
 # ── Fakes ────────────────────────────────────────────────────────────
 
@@ -273,7 +273,7 @@ class TestStopLoss:
 class TestLoadPositions:
     @pytest.mark.asyncio
     async def test_load_open_positions(self):
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         store = FakeDataStore()
         bus = FakeEventBus()
@@ -291,7 +291,7 @@ class TestLoadPositions:
             unrealized_pnl=Decimal("0"),
             realized_pnl=Decimal("0"),
             status=PositionStatus.OPEN,
-            opened_at=datetime.now(timezone.utc),
+            opened_at=datetime.now(UTC),
         )
         store._open_positions = [existing]
 
@@ -454,8 +454,8 @@ class TestTrailingStop:
 
         # Activate and move up
         await pm.on_market_tick(make_tick(price=97_000_000))
-        ts = pm.get_position("STR-001").trailing_stop
-        # ts = 97M * 0.985 = 95_545_000
+        assert pm.get_position("STR-001").trailing_stop is not None
+        # trailing_stop = 97M * 0.985 = 95_545_000
 
         # Price drops below trailing stop
         await pm.on_market_tick(make_tick(price=95_500_000))

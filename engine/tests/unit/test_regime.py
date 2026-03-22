@@ -1,13 +1,11 @@
 """Tests for market regime detection."""
 
 import pandas as pd
-import pytest
 
 from engine.strategy.regime import (
-    RegimeConfig,
-    RegimeResult,
-    detect_regime,
     REGIME_PRESET_MAP,
+    RegimeConfig,
+    detect_regime,
 )
 from shared.enums import RegimeType
 

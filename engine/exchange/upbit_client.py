@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -86,7 +86,7 @@ class UpbitExchangeClient:
         raw = await self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
         return [
             Candle(
-                time=datetime.fromtimestamp(row[0] / 1000, tz=timezone.utc),
+                time=datetime.fromtimestamp(row[0] / 1000, tz=UTC),
                 symbol=symbol,
                 timeframe=timeframe,
                 open=Decimal(str(row[1])),

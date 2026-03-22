@@ -1,7 +1,5 @@
 """Tests for OrderManager."""
 
-import asyncio
-from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -9,7 +7,6 @@ import pytest
 from engine.execution.circuit_breaker import CBState, CircuitBreaker
 from engine.execution.order_manager import OrderManager
 from shared.enums import (
-    AlertSeverity,
     OrderSide,
     OrderStatus,
     OrderType,
@@ -17,7 +14,6 @@ from shared.enums import (
 )
 from shared.events import OrderFilledEvent, OrderRequestEvent, RiskAlertEvent
 from shared.models import Order, PaperBalance
-
 
 # ── Fakes ────────────────────────────────────────────────────────────
 

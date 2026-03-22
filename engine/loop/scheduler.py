@@ -7,7 +7,8 @@ on cron/interval schedules within the asyncio event loop.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -33,7 +33,7 @@ from shared.models import (
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
-NOW = datetime(2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2025, 6, 15, 12, 0, 0, tzinfo=UTC)
 API_KEY = "dev-api-key"
 HEADERS = {"X-API-Key": API_KEY}
 

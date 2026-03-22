@@ -3,10 +3,8 @@
 import pytest
 
 from engine.strategy.grid import (
-    GridAction,
     GridConfig,
     GridEngine,
-    GridLevel,
     GridLevelStatus,
     GridType,
 )

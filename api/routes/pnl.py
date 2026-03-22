@@ -49,7 +49,6 @@ async def get_pnl_summary(
 
     # Aggregate by strategy
     from collections import defaultdict
-    from decimal import Decimal
 
     by_strategy: dict[str, list] = defaultdict(list)
     for r in records:

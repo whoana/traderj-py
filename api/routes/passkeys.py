@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException
@@ -86,7 +86,7 @@ async def list_passkeys() -> list[PasskeyResponse]:
 @router.post("", status_code=201)
 async def create_passkey(body: PasskeyCreate) -> PasskeyResponse:
     await _ensure_table()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     async with aiosqlite.connect(_DB_PATH) as db:
         try:
             await db.execute(
@@ -102,8 +102,8 @@ async def create_passkey(body: PasskeyCreate) -> PasskeyResponse:
                 ),
             )
             await db.commit()
-        except aiosqlite.IntegrityError:
-            raise HTTPException(status_code=409, detail="Passkey already exists")
+        except aiosqlite.IntegrityError as e:
+            raise HTTPException(status_code=409, detail="Passkey already exists") from e
     return PasskeyResponse(
         credential_id=body.credential_id,
         public_key=body.public_key,
