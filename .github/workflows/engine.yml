@@ -2,9 +2,9 @@ name: Engine CI
 
 on:
   push:
-    paths: ['engine/**', 'shared/**', 'migrations/**']
+    paths: ['engine/**', 'shared/**', 'migrations/**', '.github/workflows/engine.yml']
   pull_request:
-    paths: ['engine/**', 'shared/**', 'migrations/**']
+    paths: ['engine/**', 'shared/**', 'migrations/**', '.github/workflows/engine.yml']
 
 jobs:
   lint-and-test:

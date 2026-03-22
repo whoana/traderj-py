@@ -2,9 +2,9 @@ name: Dashboard CI
 
 on:
   push:
-    paths: ['dashboard/**']
+    paths: ['dashboard/**', '.github/workflows/dashboard.yml']
   pull_request:
-    paths: ['dashboard/**']
+    paths: ['dashboard/**', '.github/workflows/dashboard.yml']
 
 jobs:
   lint-and-test:

@@ -2,9 +2,9 @@ name: API CI
 
 on:
   push:
-    paths: ['api/**', 'shared/**']
+    paths: ['api/**', 'shared/**', '.github/workflows/api.yml']
   pull_request:
-    paths: ['api/**', 'shared/**']
+    paths: ['api/**', 'shared/**', '.github/workflows/api.yml']
 
 jobs:
   lint-and-test:
