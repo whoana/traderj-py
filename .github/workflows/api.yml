@@ -17,7 +17,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install poetry
+          pip install poetry ruff
           cd shared && pip install -e .
           cd ../engine && poetry install
           cd ../api && poetry install
