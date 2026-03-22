@@ -117,25 +117,23 @@ Vercel 배포 + 인증 + 실시간 모니터링 대시보드 구현 완료.
 
 ## Next Steps (순서대로)
 
-### 1. 🔴 변경사항 커밋 + 푸시
+### 1. ✅ 변경사항 커밋 + 푸시 — 완료
 
-대시보드 + 엔진 변경사항 전부 미커밋 상태.
+커밋 `6e0c9f6` (Phase 4 대시보드), `c53483a` (스토리보드 Gap 해결). 푸시 완료.
 
-### 2. 🟡 Analytics 페이지 구현
+### 2. ✅ Analytics 페이지 — 구현 완료
 
-스토리보드 Screen 3 — PnL 차트, 트레이드 이력 테이블, 전략 성과 분석.
-API: `/engine/pnl`, `/engine/orders`, `/engine/analytics`
+PnL 차트 (Cumulative + Daily), 트레이드 이력 테이블, 기간 선택 (7/14/30/60/90일).
 
-### 3. 🟡 Control 페이지 구현
+### 3. ✅ Control 페이지 — 구현 완료
 
-스토리보드 Screen 4 — 엔진 상태 대형 표시, Start/Stop/Restart 버튼, 전략 선택(라디오), 레짐 오버라이드.
-API: `/engine/engine/status`, `/engine/engine/stop`, `/engine/engine/start`, `/engine/strategy/switch`
+엔진 Start/Stop/Restart, 전략 프리셋 선택 (STR-001~006), 포지션 Close, SL/TP 조정.
 
-### 4. 🟡 Storyboard 추가 Gap 해결
+### 4. ✅ Storyboard Gap 해결 — 완료
 
-- Emergency Stop 확인 다이얼로그 (현재 `confirm()` → 커스텀 모달로)
-- 스토리보드의 States & Dialogs 섹션 구현
-- 하단 탭 바 내비게이션 (모바일 전용, 스토리보드 Section 3)
+- Emergency Stop: `confirm()` → 커스텀 ConfirmDialog 모달
+- StatusBadge: running 상태 pulse 애니메이션
+- 모바일 하단 탭 바 내비게이션 (BottomNav, sm:hidden, safe-area 패딩)
 
 ### 5. 🟢 TP(Take Profit) 로직 보완
 
@@ -157,11 +155,11 @@ API: `/engine/engine/status`, `/engine/engine/stop`, `/engine/engine/start`, `/e
 | 포지션 | 없음 (BTC 0) |
 | 잔고 | KRW ~10,085,107 |
 | PnL | +0.85% |
-| 엔진 API | https://traderj-engine.fly.dev ✅ |
-| 대시보드 | https://dashboard-six-mu-40.vercel.app ✅ |
+| 엔진 API | https://traderj-engine.fly.dev |
+| 대시보드 | https://dashboard-six-mu-40.vercel.app |
 | 매크로 수집 | 5분 주기 실시간 (Fear & Greed, Funding Rate, BTC Dom, Kimchi Premium) |
 | 테스트 | 467+ passed |
-| Git | commit 3591848 (main) + 미커밋 변경사항 다수 |
+| Git | commit c53483a (main) |
 
 ---
 
