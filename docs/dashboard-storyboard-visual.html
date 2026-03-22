@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraderJ Dashboard - Visual Storyboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #020617;
+    --surface: #0F172A;
+    --surface-raised: #1E293B;
+    --border: #334155;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --positive: #22C55E;
+    --negative: #EF4444;
+    --accent: #3B82F6;
+    --warning: #F59E0B;
+    --destructive: #DC2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Fira Sans', sans-serif;
+    background: #111827;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  /* ── Document Layout ── */
+  .doc-header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 40px;
+    text-align: center;
+  }
+  .doc-header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .doc-header p { color: var(--text-secondary); font-size: 14px; }
+
+  .toc {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 40px;
+  }
+  .toc h2 { font-size: 18px; margin-bottom: 16px; color: var(--accent); }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .toc-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text-primary);
+    display: block;
+  }
+  .toc-item:hover { border-color: var(--accent); background: var(--surface-raised); }
+  .toc-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .toc-item .name { font-size: 16px; font-weight: 600; margin-top: 4px; }
+
+  .section {
+    max-width: 1200px;
+    margin: 60px auto;
+    padding: 0 40px;
+  }
+  .section-title {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .section-heading {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+  .section-desc {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 32px;
+    max-width: 600px;
+  }
+
+  /* ── Color Palette ── */
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .color-swatch {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .color-swatch .preview { height: 64px; }
+  .color-swatch .info { padding: 10px 12px; background: var(--surface); }
+  .color-swatch .info .name { font-size: 12px; font-weight: 600; }
+  .color-swatch .info .hex { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--text-muted); }
+
+  /* ── Typography ── */
+  .type-sample {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 12px;
+  }
+  .type-sample .meta { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .type-mono { font-family: 'Fira Code', monospace; }
+  .type-sans { font-family: 'Fira Sans', sans-serif; }
+
+  /* ── Screen Mockup ── */
+  .screen-frame {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  }
+  .screen-titlebar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .screen-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .screen-dot.r { background: #EF4444; }
+  .screen-dot.y { background: #F59E0B; }
+  .screen-dot.g { background: #22C55E; }
+  .screen-titlebar .url {
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 12px;
+  }
+  .screen-body { padding: 0; }
+
+  /* ── Dashboard Screen ── */
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 700px;
+  }
+
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sidebar-item:hover { background: var(--surface-raised); color: var(--text-primary); }
+  .sidebar-item.active { background: rgba(59,130,246,0.1); color: var(--accent); border-right: 3px solid var(--accent); }
+  .sidebar-icon { width: 20px; text-align: center; font-size: 16px; }
+
+  .main-content { padding: 24px; overflow-y: auto; }
+
+  /* ── Top Bar ── */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-badge.running { background: rgba(34,197,94,0.15); color: var(--positive); }
+  .status-badge.stopped { background: rgba(239,68,68,0.15); color: var(--negative); }
+  .status-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .strategy-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-family: 'Fira Code', monospace;
+  }
+  .btn-emergency {
+    background: var(--destructive);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-emergency:hover { background: #B91C1C; }
+
+  /* ── KPI Cards ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .kpi-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Fira Code', monospace; font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .kpi-sub { font-family: 'Fira Code', monospace; font-size: 13px; }
+  .kpi-sub.up { color: var(--positive); }
+  .kpi-sub.down { color: var(--negative); }
+  .kpi-sub.neutral { color: var(--text-muted); }
+
+  /* ── Chart Area ── */
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chart-title { font-size: 14px; font-weight: 600; }
+  .chart-tf-btns { display: flex; gap: 4px; }
+  .tf-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'Fira Code', monospace;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .tf-btn.active { background: var(--surface-raised); color: var(--accent); border-color: var(--accent); }
+  .chart-body {
+    height: 300px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Candlestick SVG ── */
+  .candle-chart { width: 100%; height: 100%; }
+
+  /* ── Bottom Grid ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .panel-body { padding: 16px 20px; }
+
+  /* ── Position Card ── */
+  .empty-state {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+  .empty-state .msg { font-size: 14px; margin-bottom: 4px; color: var(--text-secondary); }
+  .empty-state .hint { font-size: 12px; }
+
+  /* ── Macro Indicators ── */
+  .macro-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(51,65,85,0.5);
+    font-size: 13px;
+  }
+  .macro-row:last-child { border-bottom: none; }
+  .macro-label { color: var(--text-secondary); }
+  .macro-value { font-family: 'Fira Code', monospace; font-weight: 500; }
+
+  /* ── Trade History Table ── */
+  .trade-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .trade-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .trade-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(51,65,85,0.3);
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+  }
+  .trade-table tr:hover { background: var(--surface-raised); }
+  .buy-tag { color: var(--positive); font-weight: 600; }
+  .sell-tag { color: var(--negative); font-weight: 600; }
+
+  /* ── Positions Screen ── */
+  .pos-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .pos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .pos-pair { font-size: 18px; font-weight: 700; }
+  .pos-side {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pos-side.long { background: rgba(34,197,94,0.15); color: var(--positive); }
+  .pos-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .pos-field .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .pos-field .value { font-family: 'Fira Code', monospace; font-size: 15px; font-weight: 600; }
+  .sl-tp-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .sl-tp-label { font-size: 12px; font-weight: 600; width: 24px; }
+  .sl-tp-label.sl { color: var(--negative); }
+  .sl-tp-label.tp { color: var(--positive); }
+  .sl-tp-value { font-family: 'Fira Code', monospace; font-size: 14px; flex: 1; }
+  .sl-tp-pct { font-family: 'Fira Code', monospace; font-size: 12px; color: var(--text-muted); }
+  .btn-sm {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: rgba(220,38,38,0.1);
+    border: 1px solid var(--destructive);
+    color: var(--destructive);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-danger:hover { background: var(--destructive); color: white; }
+
+  /* ── Control Screen ── */
+  .control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .control-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .control-panel h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .engine-status-large {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: 8px;
+  }
+  .engine-dot-lg { width: 16px; height: 16px; border-radius: 50%; background: var(--positive); animation: pulse 2s infinite; }
+  .engine-label { font-size: 20px; font-weight: 700; }
+  .engine-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .engine-meta-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .engine-meta-item .value { font-family: 'Fira Code', monospace; font-size: 14px; }
+  .btn-group { display: flex; gap: 8px; }
+  .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-stop { background: var(--destructive); color: white; }
+  .btn-stop:hover { background: #B91C1C; }
+  .btn-restart { background: var(--warning); color: var(--bg); }
+  .btn-restart:hover { background: #D97706; }
+
+  .strategy-list { list-style: none; }
+  .strategy-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 14px;
+  }
+  .strategy-list li:hover { background: var(--surface-raised); }
+  .strategy-list li.active { background: rgba(59,130,246,0.1); border: 1px solid var(--accent); }
+  .radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; }
+  .radio.checked { border-color: var(--accent); }
+  .radio.checked::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .strategy-name { font-weight: 500; }
+  .strategy-desc { font-size: 12px; color: var(--text-muted); }
+  .btn-apply {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.15s;
+  }
+  .btn-apply:hover { background: #2563EB; }
+
+  /* ── PnL Chart ── */
+  .pnl-chart-area { height: 240px; padding: 20px; position: relative; }
+
+  /* ── Analytics Screen ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text-primary); }
+
+  /* ── Flow Diagram ── */
+  .flow-section { margin-top: 60px; }
+  .flow-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .flow-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .flow-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+  }
+  .flow-step.start { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+  .flow-step.action { border-color: var(--warning); background: rgba(245,158,11,0.08); }
+  .flow-step.danger { border-color: var(--destructive); background: rgba(220,38,38,0.08); }
+  .flow-step.end { border-color: var(--positive); background: rgba(34,197,94,0.08); }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 20px;
+    padding-top: 12px;
+  }
+
+  /* ── Annotation ── */
+  .annotation {
+    background: rgba(59,130,246,0.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .annotation strong { color: var(--accent); }
+
+  /* ── Settings Screen ── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .settings-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .settings-panel .header {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(51,65,85,0.3);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row .key { color: var(--text-secondary); }
+  .settings-row .val { font-family: 'Fira Code', monospace; font-weight: 500; }
+
+  /* ── Responsive note ── */
+  .responsive-preview {
+    display: grid;
+    grid-template-columns: 1fr 375px;
+    gap: 24px;
+    align-items: start;
+  }
+  .mobile-frame {
+    background: var(--bg);
+    border: 3px solid var(--border);
+    border-radius: 32px;
+    overflow: hidden;
+    max-width: 375px;
+  }
+  .mobile-notch {
+    width: 120px;
+    height: 28px;
+    background: var(--border);
+    border-radius: 0 0 16px 16px;
+    margin: 0 auto;
+  }
+  .mobile-screen { padding: 16px; min-height: 500px; }
+  .mobile-bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 8px 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .mobile-nav-item { text-align: center; }
+  .mobile-nav-item.active { color: var(--accent); }
+  .mobile-nav-icon { font-size: 20px; margin-bottom: 2px; }
+
+  .kpi-grid-mobile { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .kpi-card-mobile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .kpi-card-mobile .kpi-label { font-size: 10px; }
+  .kpi-card-mobile .kpi-value { font-size: 16px; }
+  .kpi-card-mobile .kpi-sub { font-size: 11px; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 60px 0; }
+
+  /* ── State Indicators ── */
+  .states-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+  .state-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .state-indicator { font-size: 28px; margin-bottom: 8px; }
+  .state-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .state-desc { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Dialog Mockup ── */
+  .dialog-overlay {
+    background: rgba(2,6,23,0.7);
+    border-radius: 12px;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 24px 0;
+  }
+  .dialog-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+  }
+  .dialog-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .dialog-box p { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6; }
+  .dialog-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .dialog-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .dialog-btn.cancel { background: var(--surface-raised); color: var(--text-secondary); }
+  .dialog-btn.confirm { background: var(--destructive); color: white; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ DOCUMENT HEADER ═══════════════════ -->
+<div class="doc-header">
+  <h1>TraderJ Dashboard</h1>
+  <p>Visual Storyboard &mdash; UI/UX Pre-Development Review &mdash; 2026-03-22</p>
+</div>
+
+<!-- ═══════════════════ TABLE OF CONTENTS ═══════════════════ -->
+<div class="toc">
+  <h2>Contents</h2>
+  <div class="toc-grid">
+    <a class="toc-item" href="#design-system"><div class="label">Section 1</div><div class="name">Design System</div></a>
+    <a class="toc-item" href="#screen-dashboard"><div class="label">Screen 1</div><div class="name">Dashboard</div></a>
+    <a class="toc-item" href="#screen-positions"><div class="label">Screen 2</div><div class="name">Positions</div></a>
+    <a class="toc-item" href="#screen-analytics"><div class="label">Screen 3</div><div class="name">Analytics</div></a>
+    <a class="toc-item" href="#screen-control"><div class="label">Screen 4</div><div class="name">Control</div></a>
+    <a class="toc-item" href="#screen-settings"><div class="label">Screen 5</div><div class="name">Settings</div></a>
+    <a class="toc-item" href="#states"><div class="label">Section 2</div><div class="name">States & Dialogs</div></a>
+    <a class="toc-item" href="#mobile"><div class="label">Section 3</div><div class="name">Mobile View</div></a>
+    <a class="toc-item" href="#flows"><div class="label">Section 4</div><div class="name">User Flows</div></a>
+  </div>
+</div>
+
+<!-- ═══════════════════ 1. DESIGN SYSTEM ═══════════════════ -->
+<div class="section" id="design-system">
+  <div class="section-title">Section 1</div>
+  <div class="section-heading">Design System</div>
+  <div class="section-desc">Financial Dashboard Dark 테마. 장시간 모니터링에 최적화된 고대비 다크 팔레트.</div>
+
+  <h3 style="font-size:16px; margin-bottom:16px;">Color Palette</h3>
+  <div class="palette">
+    <div class="color-swatch"><div class="preview" style="background:#020617"></div><div class="info"><div class="name">Background</div><div class="hex">#020617</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#0F172A"></div><div class="info"><div class="name">Surface</div><div class="hex">#0F172A</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#1E293B"></div><div class="info"><div class="name">Raised</div><div class="hex">#1E293B</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#334155"></div><div class="info"><div class="name">Border</div><div class="hex">#334155</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#F8FAFC"></div><div class="info"><div class="name">Text</div><div class="hex">#F8FAFC</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#94A3B8"></div><div class="info"><div class="name">Secondary</div><div class="hex">#94A3B8</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#22C55E"></div><div class="info"><div class="name">Positive</div><div class="hex">#22C55E</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#EF4444"></div><div class="info"><div class="name">Negative</div><div class="hex">#EF4444</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#3B82F6"></div><div class="info"><div class="name">Accent</div><div class="hex">#3B82F6</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#F59E0B"></div><div class="info"><div class="name">Warning</div><div class="hex">#F59E0B</div></div></div>
+    <div class="color-swatch"><div class="preview" style="background:#DC2626"></div><div class="info"><div class="name">Destructive</div><div class="hex">#DC2626</div></div></div>
+  </div>
+
+  <h3 style="font-size:16px; margin-bottom:16px;">Typography</h3>
+  <div class="type-sample">
+    <div class="meta">Numbers &amp; Data &mdash; Fira Code (Monospace)</div>
+    <div class="type-mono" style="font-size:32px; font-weight:700; color:var(--positive);">+₩85,107</div>
+    <div class="type-mono" style="font-size:24px; font-weight:600;">₩10,085,107</div>
+    <div class="type-mono" style="font-size:14px; color:var(--text-secondary);">0.03148295 BTC @ ₩104,405,282</div>
+  </div>
+  <div class="type-sample">
+    <div class="meta">UI Text &mdash; Fira Sans</div>
+    <div class="type-sans" style="font-size:24px; font-weight:700;">Dashboard Overview</div>
+    <div class="type-sans" style="font-size:16px; font-weight:400; color:var(--text-secondary);">현재 열린 포지션이 없습니다. 봇이 다음 매수 신호를 감시 중입니다.</div>
+    <div class="type-sans" style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-top:8px;">TOTAL BALANCE &bull; UNREALIZED PNL &bull; STRATEGY ID</div>
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ SCREEN 1: DASHBOARD ═══════════════════ -->
+<div class="section" id="screen-dashboard">
+  <div class="section-title">Screen 1</div>
+  <div class="section-heading">Dashboard (메인)</div>
+  <div class="section-desc">핵심 KPI, BTC/KRW 캔들차트, 열린 포지션, 매크로 지표를 한 화면에서 확인합니다.</div>
+
+  <div class="screen-frame">
+    <div class="screen-titlebar">
+      <div class="screen-dot r"></div>
+      <div class="screen-dot y"></div>
+      <div class="screen-dot g"></div>
+      <span class="url">traderj-monitor.vercel.app/</span>
+    </div>
+    <div class="screen-body">
+      <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-logo">TraderJ</div>
+          <div class="sidebar-item active"><span class="sidebar-icon">&#9632;</span> Dashboard</div>
+          <div class="sidebar-item"><span class="sidebar-icon">&#9670;</span> Positions</div>
+          <div class="sidebar-item"><span class="sidebar-icon">&#9633;</span> Orders</div>
+          <div class="sidebar-item"><span class="sidebar-icon">&#9650;</span> Analytics</div>
+          <div class="sidebar-item"><span class="sidebar-icon">&#9881;</span> Control</div>
+          <div class="sidebar-item"><span class="sidebar-icon">&#9783;</span> Settings</div>
+        </div>
+        <!-- Main -->
+        <div class="main-content">
+          <!-- Top Bar -->
+          <div class="topbar">
+            <div class="topbar-left">
+              <span class="status-badge running"><span class="dot"></span> Running</span>
+              <span class="strategy-tag">STR-005</span>
+              <span style="font-size:12px; color:var(--text-muted);">Uptime: 2h 15m</span>
+            </div>
+            <button class="btn-emergency">&#9632; Emergency Stop</button>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Balance</div>
+              <div class="kpi-value">₩10.08M</div>
+              <div class="kpi-sub up">+₩85,107</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Return</div>
+              <div class="kpi-value" style="color:var(--positive);">+0.85%</div>
+              <div class="kpi-sub up">&#9650; ₩85,107</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">BTC Price</div>
+              <div class="kpi-value">₩106.2M</div>
+              <div class="kpi-sub down">&#9660; -0.31%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Regime</div>
+              <div class="kpi-value" style="font-size:16px;">ranging_low_vol</div>
+              <div class="kpi-sub neutral">conf: 0.1756</div>
+            </div>
+          </div>
+
+          <!-- Candlestick Chart -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <div class="chart-title">BTC/KRW</div>
+              <div class="chart-tf-btns">
+                <span class="tf-btn">1H</span>
+                <span class="tf-btn active">4H</span>
+                <span class="tf-btn">1D</span>
+              </div>
+            </div>
+            <div class="chart-body">
+              <svg viewBox="0 0 800 260" class="candle-chart" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line x1="0" y1="65" x2="800" y2="65" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="0" y1="130" x2="800" y2="130" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+                <line x1="0" y1="195" x2="800" y2="195" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+                <!-- Price labels -->
+                <text x="760" y="62" fill="#64748B" font-size="10" font-family="Fira Code">₩107.0M</text>
+                <text x="760" y="127" fill="#64748B" font-size="10" font-family="Fira Code">₩106.0M</text>
+                <text x="760" y="192" fill="#64748B" font-size="10" font-family="Fira Code">₩105.0M</text>
+                <!-- Candles (green=bullish, red=bearish) -->
+                <line x1="50" y1="60" x2="50" y2="180" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="42" y="90" width="16" height="60" fill="#EF5350" rx="1"/>
+                <line x1="100" y1="70" x2="100" y2="170" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="92" y="100" width="16" height="40" fill="#EF5350" rx="1"/>
+                <line x1="150" y1="80" x2="150" y2="190" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="142" y="110" width="16" height="50" fill="#26A69A" rx="1"/>
+                <line x1="200" y1="70" x2="200" y2="160" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="192" y="80" width="16" height="50" fill="#26A69A" rx="1"/>
+                <line x1="250" y1="50" x2="250" y2="140" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="242" y="60" width="16" height="50" fill="#26A69A" rx="1"/>
+                <line x1="300" y1="40" x2="300" y2="130" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="292" y="60" width="16" height="50" fill="#EF5350" rx="1"/>
+                <line x1="350" y1="55" x2="350" y2="145" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="342" y="75" width="16" height="45" fill="#EF5350" rx="1"/>
+                <line x1="400" y1="70" x2="400" y2="155" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="392" y="95" width="16" height="35" fill="#26A69A" rx="1"/>
+                <line x1="450" y1="60" x2="450" y2="140" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="442" y="70" width="16" height="45" fill="#26A69A" rx="1"/>
+                <line x1="500" y1="50" x2="500" y2="130" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="492" y="55" width="16" height="55" fill="#26A69A" rx="1"/>
+                <line x1="550" y1="45" x2="550" y2="120" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="542" y="50" width="16" height="50" fill="#EF5350" rx="1"/>
+                <line x1="600" y1="60" x2="600" y2="150" stroke="#EF5350" stroke-width="1.5"/>
+                <rect x="592" y="80" width="16" height="45" fill="#EF5350" rx="1"/>
+                <line x1="650" y1="70" x2="650" y2="140" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="642" y="80" width="16" height="40" fill="#26A69A" rx="1"/>
+                <line x1="700" y1="65" x2="700" y2="130" stroke="#26A69A" stroke-width="1.5"/>
+                <rect x="692" y="70" width="16" height="35" fill="#26A69A" rx="1"/>
+                <!-- Buy marker -->
+                <circle cx="200" cy="165" r="6" fill="#26A69A" stroke="#020617" stroke-width="2"/>
+                <text x="210" y="169" fill="#26A69A" font-size="10" font-family="Fira Sans" font-weight="600">BUY</text>
+                <!-- Sell marker -->
+                <circle cx="550" cy="48" r="6" fill="#EF5350" stroke="#020617" stroke-width="2"/>
+                <text x="560" y="52" fill="#EF5350" font-size="10" font-family="Fira Sans" font-weight="600">SELL</text>
+                <!-- Volume bars (bottom) -->
+                <rect x="42" y="230" width="16" height="25" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="92" y="238" width="16" height="17" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="142" y="235" width="16" height="20" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="192" y="225" width="16" height="30" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="242" y="232" width="16" height="23" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="292" y="240" width="16" height="15" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="342" y="237" width="16" height="18" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="392" y="242" width="16" height="13" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="442" y="228" width="16" height="27" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="492" y="220" width="16" height="35" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="542" y="235" width="16" height="20" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="592" y="240" width="16" height="15" fill="#EF5350" opacity="0.3" rx="1"/>
+                <rect x="642" y="237" width="16" height="18" fill="#26A69A" opacity="0.3" rx="1"/>
+                <rect x="692" y="242" width="16" height="13" fill="#26A69A" opacity="0.3" rx="1"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Bottom Grid -->
+          <div class="bottom-grid">
+            <div class="panel">
+              <div class="panel-header">Open Position</div>
+              <div class="empty-state">
+                <div class="icon">&#9670;</div>
+                <div class="msg">현재 열린 포지션이 없습니다</div>
+                <div class="hint">봇이 다음 매수 신호를 감시 중입니다</div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Macro Indicators</div>
+              <div class="panel-body">
+                <div class="macro-row"><span class="macro-label">Fear & Greed</span><span class="macro-value">65</span></div>
+                <div class="macro-row"><span class="macro-label">Kimchi Premium</span><span class="macro-value" style="color:var(--positive)">+2.1%</span></div>
+                <div class="macro-row"><span class="macro-label">Funding Rate</span><span class="macro-value">0.010%</span></div>
+                <div class="macro-row"><span class="macro-label">BTC Dominance</span><span class="macro-value">54.2%</span></div>
+                <div class="macro-row"><span class="macro-label">Market Score</span><span class="macro-value">0.62</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>API:</strong> GET engine/status (30s), balance (30s), positions?status=open (15s), macro/latest (5m)<br>
+    <strong>Interaction:</strong> KPI 클릭 &rarr; 상세 페이지, 차트 줌/패닝, 타임프레임 전환, Emergency Stop &rarr; 확인 다이얼로그
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ SCREEN 2: POSITIONS ═══════════════════ -->
+<div class="section" id="screen-positions">
+  <div class="section-title">Screen 2</div>
+  <div class="section-heading">Positions (포지션 관리)</div>
+  <div class="section-desc">열린 포지션의 SL/TP 조정, 긴급 청산, 과거 포지션 이력 확인.</div>
+
+  <div class="screen-frame">
+    <div class="screen-titlebar">
+      <div class="screen-dot r"></div><div class="screen-dot y"></div><div class="screen-dot g"></div>
+      <span class="url">traderj-monitor.vercel.app/positions</span>
+    </div>
+    <div class="screen-body" style="padding:24px;">
+      <h2 style="font-size:20px; margin-bottom:20px;">Positions</h2>
+
+      <!-- Open Position -->
+      <div class="pos-card">
+        <div class="pos-header">
+          <div><span class="pos-pair">BTC/KRW</span> <span class="pos-side long">LONG</span></div>
+          <span class="strategy-tag">STR-001</span>
+        </div>
+        <div class="pos-detail-grid">
+          <div class="pos-field">
+            <div class="label">Entry Price</div>
+            <div class="value">₩104,405,282</div>
+          </div>
+          <div class="pos-field">
+            <div class="label">Current Price</div>
+            <div class="value" style="color:var(--positive)">₩106,200,000</div>
+          </div>
+          <div class="pos-field">
+            <div class="label">Change</div>
+            <div class="value" style="color:var(--positive)">+1.72%</div>
+          </div>
+          <div class="pos-field">
+            <div class="label">Amount</div>
+            <div class="value">0.03148 BTC</div>
+          </div>
+          <div class="pos-field">
+            <div class="label">Value</div>
+            <div class="value">₩3,343,876</div>
+          </div>
+          <div class="pos-field">
+            <div class="label">Unrealized PnL</div>
+            <div class="value" style="color:var(--positive)">+₩56,520</div>
+          </div>
+        </div>
+
+        <div class="sl-tp-bar">
+          <span class="sl-tp-label sl">SL</span>
+          <span class="sl-tp-value">₩101,273,124</span>
+          <span class="sl-tp-pct">-3.00%</span>
+          <button class="btn-sm">Change</button>
+        </div>
+        <div class="sl-tp-bar">
+          <span class="sl-tp-label tp">TP</span>
+          <span class="sl-tp-value" style="color:var(--text-muted)">Not set</span>
+          <span class="sl-tp-pct">&mdash;</span>
+          <button class="btn-sm">Set</button>
+        </div>
+
+        <button class="btn-danger">Close Position at Market Price</button>
+      </div>
+
+      <!-- Trade History -->
+      <div class="panel" style="margin-top:24px;">
+        <div class="panel-header">Closed Positions</div>
+        <table class="trade-table">
+          <thead>
+            <tr><th>Date</th><th>Side</th><th>Entry</th><th>Exit</th><th>PnL</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-03-21</td>
+              <td class="buy-tag">LONG</td>
+              <td>₩105,800,000</td>
+              <td>₩106,046,200</td>
+              <td style="color:var(--positive)">+₩1,246</td>
+            </tr>
+            <tr>
+              <td>2026-03-19</td>
+              <td class="buy-tag">LONG</td>
+              <td>₩104,200,000</td>
+              <td>₩103,798,000</td>
+              <td style="color:var(--negative)">-₩4,021</td>
+            </tr>
+            <tr>
+              <td>2026-03-17</td>
+              <td class="buy-tag">LONG</td>
+              <td>₩103,500,000</td>
+              <td>₩104,120,000</td>
+              <td style="color:var(--positive)">+₩3,887</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>API:</strong> GET positions, POST position/close, position/sl, position/tp<br>
+    <strong>Interaction:</strong> SL/TP 인라인 편집, 청산 &rarr; 확인 다이얼로그, 포지션 행 클릭 &rarr; 상세 확장
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ SCREEN 3: ANALYTICS ═══════════════════ -->
+<div class="section" id="screen-analytics">
+  <div class="section-title">Screen 3</div>
+  <div class="section-heading">Analytics (분석)</div>
+  <div class="section-desc">누적 PnL 곡선, MDD, 시그널 이력, 전략 비교 차트.</div>
+
+  <div class="screen-frame">
+    <div class="screen-titlebar">
+      <div class="screen-dot r"></div><div class="screen-dot y"></div><div class="screen-dot g"></div>
+      <span class="url">traderj-monitor.vercel.app/analytics</span>
+    </div>
+    <div class="screen-body" style="padding:24px;">
+      <div class="tab-bar">
+        <div class="tab active">PnL Curve</div>
+        <div class="tab">Signals</div>
+        <div class="tab">Compare</div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-grid" style="margin-bottom:24px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Total PnL</div>
+          <div class="kpi-value" style="color:var(--positive); font-size:20px;">+₩85,107</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Max Drawdown</div>
+          <div class="kpi-value" style="color:var(--negative); font-size:20px;">-₩4,021</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Win Rate</div>
+          <div class="kpi-value" style="font-size:20px;">60.0%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Trades</div>
+          <div class="kpi-value" style="font-size:20px;">5</div>
+        </div>
+      </div>
+
+      <!-- Period selector -->
+      <div style="margin-bottom:16px;">
+        <div class="chart-tf-btns">
+          <span class="tf-btn">7D</span>
+          <span class="tf-btn active">30D</span>
+          <span class="tf-btn">90D</span>
+          <span class="tf-btn">ALL</span>
+        </div>
+      </div>
+
+      <!-- PnL Chart -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <div class="chart-title">Cumulative PnL</div>
+        </div>
+        <div class="pnl-chart-area">
+          <svg viewBox="0 0 800 200" preserveAspectRatio="none" style="width:100%; height:100%;">
+            <!-- Grid -->
+            <line x1="0" y1="40" x2="800" y2="40" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+            <line x1="0" y1="100" x2="800" y2="100" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+            <line x1="0" y1="160" x2="800" y2="160" stroke="#334155" stroke-width="0.5" stroke-dasharray="4"/>
+            <!-- Labels -->
+            <text x="760" y="37" fill="#64748B" font-size="10" font-family="Fira Code">+₩80K</text>
+            <text x="770" y="97" fill="#64748B" font-size="10" font-family="Fira Code">₩0</text>
+            <text x="760" y="157" fill="#64748B" font-size="10" font-family="Fira Code">-₩40K</text>
+            <!-- Cumulative PnL line (area) -->
+            <defs>
+              <linearGradient id="pnlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#22C55E; stop-opacity:0.3"/>
+                <stop offset="100%" style="stop-color:#22C55E; stop-opacity:0"/>
+              </linearGradient>
+            </defs>
+            <path d="M 0,100 L 80,105 160,120 240,110 320,95 400,80 480,90 560,70 640,55 720,45 800,40 L 800,200 0,200 Z" fill="url(#pnlGrad)"/>
+            <path d="M 0,100 L 80,105 160,120 240,110 320,95 400,80 480,90 560,70 640,55 720,45 800,40" fill="none" stroke="#22C55E" stroke-width="2"/>
+            <!-- MDD zone -->
+            <rect x="120" y="100" width="120" height="25" fill="#EF4444" opacity="0.1" rx="4"/>
+            <text x="140" y="118" fill="#EF4444" font-size="9" font-family="Fira Code" opacity="0.7">MDD</text>
+            <!-- Date labels -->
+            <text x="0" y="195" fill="#64748B" font-size="9" font-family="Fira Code">03/01</text>
+            <text x="200" y="195" fill="#64748B" font-size="9" font-family="Fira Code">03/08</text>
+            <text x="400" y="195" fill="#64748B" font-size="9" font-family="Fira Code">03/15</text>
+            <text x="600" y="195" fill="#64748B" font-size="9" font-family="Fira Code">03/20</text>
+            <text x="760" y="195" fill="#64748B" font-size="9" font-family="Fira Code">03/22</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Daily PnL bars -->
+      <div class="chart-container">
+        <div class="chart-header"><div class="chart-title">Daily PnL</div></div>
+        <div style="height:120px; padding:16px 20px;">
+          <svg viewBox="0 0 800 80" preserveAspectRatio="none" style="width:100%; height:100%;">
+            <line x1="0" y1="40" x2="800" y2="40" stroke="#334155" stroke-width="0.5"/>
+            <!-- Green bars (profit days) -->
+            <rect x="20" y="15" width="30" height="25" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="100" y="22" width="30" height="18" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="260" y="10" width="30" height="30" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="420" y="20" width="30" height="20" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="580" y="25" width="30" height="15" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="660" y="18" width="30" height="22" fill="#22C55E" opacity="0.7" rx="2"/>
+            <rect x="740" y="28" width="30" height="12" fill="#22C55E" opacity="0.7" rx="2"/>
+            <!-- Red bars (loss days) -->
+            <rect x="180" y="40" width="30" height="20" fill="#EF4444" opacity="0.7" rx="2"/>
+            <rect x="340" y="40" width="30" height="15" fill="#EF4444" opacity="0.7" rx="2"/>
+            <rect x="500" y="40" width="30" height="28" fill="#EF4444" opacity="0.7" rx="2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>API:</strong> GET analytics/pnl, pnl/daily, pnl/summary, signals, analytics/compare<br>
+    <strong>Interaction:</strong> 기간 선택 (7/30/90/ALL), 탭 전환, 차트 호버 &rarr; 정확한 수치 툴팁
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ SCREEN 4: CONTROL ═══════════════════ -->
+<div class="section" id="screen-control">
+  <div class="section-title">Screen 4</div>
+  <div class="section-heading">Control (엔진 제어)</div>
+  <div class="section-desc">엔진 시작/정지/재시작, 전략 프리셋 변경, 리스크 상태 모니터링.</div>
+
+  <div class="screen-frame">
+    <div class="screen-titlebar">
+      <div class="screen-dot r"></div><div class="screen-dot y"></div><div class="screen-dot g"></div>
+      <span class="url">traderj-monitor.vercel.app/control</span>
+    </div>
+    <div class="screen-body" style="padding:24px;">
+      <h2 style="font-size:20px; margin-bottom:20px;">Engine Control</h2>
+      <div class="control-grid">
+        <!-- Engine Status -->
+        <div class="control-panel">
+          <h3>Engine Status</h3>
+          <div class="engine-status-large">
+            <div class="engine-dot-lg"></div>
+            <span class="engine-label">Running</span>
+          </div>
+          <div class="engine-meta">
+            <div class="engine-meta-item"><div class="label">Mode</div><div class="value">Paper</div></div>
+            <div class="engine-meta-item"><div class="label">Uptime</div><div class="value">2h 15m</div></div>
+            <div class="engine-meta-item"><div class="label">Tick Count</div><div class="value">37</div></div>
+            <div class="engine-meta-item"><div class="label">State</div><div class="value">monitoring</div></div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-stop">Stop Engine</button>
+            <button class="btn btn-restart">Restart</button>
+          </div>
+        </div>
+
+        <!-- Strategy Switch -->
+        <div class="control-panel">
+          <h3>Strategy Switch</h3>
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Current: STR-005 (Balanced)</p>
+          <ul class="strategy-list">
+            <li><div class="radio"></div><div><div class="strategy-name">STR-001</div><div class="strategy-desc">Conservative Trend</div></div></li>
+            <li><div class="radio"></div><div><div class="strategy-name">STR-002</div><div class="strategy-desc">Aggressive Momentum</div></div></li>
+            <li><div class="radio"></div><div><div class="strategy-name">STR-003</div><div class="strategy-desc">Hybrid Reversal</div></div></li>
+            <li><div class="radio"></div><div><div class="strategy-name">STR-004</div><div class="strategy-desc">Range Trading</div></div></li>
+            <li class="active"><div class="radio checked"></div><div><div class="strategy-name">STR-005</div><div class="strategy-desc">Balanced (current)</div></div></li>
+            <li><div class="radio"></div><div><div class="strategy-name">STR-006</div><div class="strategy-desc">Volatility Breakout</div></div></li>
+          </ul>
+          <button class="btn-apply">Apply Strategy Change</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>API:</strong> POST engine/stop, engine/start, engine/restart, strategy/switch<br>
+    <strong>Interaction:</strong> 모든 제어 액션에 확인 다이얼로그 필수. 전략 변경 시 포지션 경고 표시.
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ SCREEN 5: SETTINGS ═══════════════════ -->
+<div class="section" id="screen-settings">
+  <div class="section-title">Screen 5</div>
+  <div class="section-heading">Settings (설정 확인)</div>
+  <div class="section-desc">현재 전략 파라미터, 레짐, 리스크 설정, 시스템 정보 (읽기 전용).</div>
+
+  <div class="screen-frame">
+    <div class="screen-titlebar">
+      <div class="screen-dot r"></div><div class="screen-dot y"></div><div class="screen-dot g"></div>
+      <span class="url">traderj-monitor.vercel.app/settings</span>
+    </div>
+    <div class="screen-body" style="padding:24px;">
+      <h2 style="font-size:20px; margin-bottom:20px;">Settings & System</h2>
+      <div class="settings-grid">
+        <div class="settings-panel">
+          <div class="header">Strategy Preset</div>
+          <div class="settings-row"><span class="key">Scoring Mode</span><span class="val">hybrid</span></div>
+          <div class="settings-row"><span class="key">Entry Mode</span><span class="val">weighted</span></div>
+          <div class="settings-row"><span class="key">Buy Threshold</span><span class="val">0.06</span></div>
+          <div class="settings-row"><span class="key">Sell Threshold</span><span class="val">-0.06</span></div>
+          <div class="settings-row"><span class="key">TF Weights</span><span class="val">4h:0.4 1d:0.6</span></div>
+          <div class="settings-row"><span class="key">Daily Gate</span><span class="val" style="color:var(--negative)">OFF</span></div>
+          <div class="settings-row"><span class="key">Macro Weight</span><span class="val">0.15</span></div>
+        </div>
+        <div class="settings-panel">
+          <div class="header">Regime</div>
+          <div class="settings-row"><span class="key">Current</span><span class="val">ranging_low_vol</span></div>
+          <div class="settings-row"><span class="key">Confidence</span><span class="val">0.1756</span></div>
+          <div class="settings-row"><span class="key">Mapped Preset</span><span class="val">STR-005</span></div>
+          <div class="settings-row"><span class="key">Switch Count</span><span class="val">1</span></div>
+          <div class="settings-row"><span class="key">Debounce</span><span class="val">3 ticks</span></div>
+          <div class="settings-row"><span class="key">Cooldown</span><span class="val">60 min</span></div>
+          <div class="settings-row"><span class="key">Close on Switch</span><span class="val" style="color:var(--positive)">ON</span></div>
+        </div>
+        <div class="settings-panel">
+          <div class="header">Risk</div>
+          <div class="settings-row"><span class="key">Max Position</span><span class="val">30%</span></div>
+          <div class="settings-row"><span class="key">Daily Loss Limit</span><span class="val">₩200,000</span></div>
+          <div class="settings-row"><span class="key">Max Consec. Loss</span><span class="val">3</span></div>
+        </div>
+        <div class="settings-panel">
+          <div class="header">System</div>
+          <div class="settings-row"><span class="key">Version</span><span class="val">0.2.0</span></div>
+          <div class="settings-row"><span class="key">Python</span><span class="val">3.13.12</span></div>
+          <div class="settings-row"><span class="key">Git</span><span class="val">3591848</span></div>
+          <div class="settings-row"><span class="key">Started</span><span class="val">2026-03-22</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>API:</strong> GET config, regime, version<br>
+    <strong>Note:</strong> 읽기 전용 화면. 설정 변경은 Control 페이지에서 수행.
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ STATES & DIALOGS ═══════════════════ -->
+<div class="section" id="states">
+  <div class="section-title">Section 2</div>
+  <div class="section-heading">States & Dialogs</div>
+
+  <h3 style="font-size:16px; margin-bottom:16px;">Engine Status Indicators</h3>
+  <div class="states-grid">
+    <div class="state-card">
+      <div class="state-indicator" style="color:var(--positive);">&#9679;</div>
+      <div class="state-label" style="color:var(--positive);">Running</div>
+      <div class="state-desc">정상 운영 중 (pulse 애니메이션)</div>
+    </div>
+    <div class="state-card">
+      <div class="state-indicator" style="color:var(--negative);">&#9632;</div>
+      <div class="state-label" style="color:var(--negative);">Stopped</div>
+      <div class="state-desc">수동 정지 상태</div>
+    </div>
+    <div class="state-card">
+      <div class="state-indicator" style="color:var(--warning);">&#9650;</div>
+      <div class="state-label" style="color:var(--warning);">Error</div>
+      <div class="state-desc">에러 발생 (깜박임)</div>
+    </div>
+    <div class="state-card">
+      <div class="state-indicator" style="color:var(--text-muted);">&#9675;</div>
+      <div class="state-label" style="color:var(--text-muted);">Connecting</div>
+      <div class="state-desc">API 연결 중</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:16px; margin:32px 0 16px;">Confirmation Dialog (위험 액션)</h3>
+  <div class="dialog-overlay">
+    <div class="dialog-box">
+      <h3 style="color:var(--negative);">&#9632; Engine Stop</h3>
+      <p>엔진을 정지합니까?<br>트레이딩이 중단되며, 열린 포지션은 유지됩니다.<br>API 서버는 계속 실행됩니다.</p>
+      <div class="dialog-btns">
+        <button class="dialog-btn cancel">Cancel</button>
+        <button class="dialog-btn confirm">Stop Engine</button>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:16px; margin:32px 0 16px;">Position Close Dialog</h3>
+  <div class="dialog-overlay">
+    <div class="dialog-box">
+      <h3 style="color:var(--negative);">Close Position</h3>
+      <p>BTC/KRW 포지션을 시장가로 즉시 청산합니다.<br><br>
+        <span style="font-family:'Fira Code'; font-size:13px;">
+          Amount: 0.03148 BTC<br>
+          Est. Value: ₩3,343,876
+        </span>
+      </p>
+      <div class="dialog-btns">
+        <button class="dialog-btn cancel">Cancel</button>
+        <button class="dialog-btn confirm">Confirm Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ MOBILE VIEW ═══════════════════ -->
+<div class="section" id="mobile">
+  <div class="section-title">Section 3</div>
+  <div class="section-heading">Mobile View (375px)</div>
+  <div class="section-desc">모바일에서는 하단 탭 바 네비게이션, 축소된 KPI 그리드, 간소화된 레이아웃.</div>
+
+  <div style="display:flex; justify-content:center;">
+    <div class="mobile-frame">
+      <div class="mobile-notch"></div>
+      <div class="mobile-screen">
+        <!-- Mobile Top -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <div style="font-size:18px; font-weight:700;">TraderJ</div>
+            <span class="status-badge running" style="font-size:10px; padding:2px 8px;"><span class="dot" style="width:6px;height:6px;"></span> Running</span>
+          </div>
+          <button class="btn-emergency" style="font-size:11px; padding:6px 10px;">STOP</button>
+        </div>
+        <!-- Mobile KPI -->
+        <div class="kpi-grid-mobile">
+          <div class="kpi-card-mobile">
+            <div class="kpi-label">Balance</div>
+            <div class="kpi-value type-mono">₩10.08M</div>
+            <div class="kpi-sub up type-mono">+0.85%</div>
+          </div>
+          <div class="kpi-card-mobile">
+            <div class="kpi-label">BTC Price</div>
+            <div class="kpi-value type-mono">₩106.2M</div>
+            <div class="kpi-sub down type-mono">-0.31%</div>
+          </div>
+          <div class="kpi-card-mobile">
+            <div class="kpi-label">PnL</div>
+            <div class="kpi-value type-mono" style="color:var(--positive)">+₩85K</div>
+            <div class="kpi-sub neutral type-mono">5 trades</div>
+          </div>
+          <div class="kpi-card-mobile">
+            <div class="kpi-label">Regime</div>
+            <div class="kpi-value" style="font-size:11px">rang_low</div>
+            <div class="kpi-sub neutral type-mono">STR-005</div>
+          </div>
+        </div>
+        <!-- Mini chart placeholder -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; height:160px; margin-bottom:12px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px;">
+          BTC/KRW 4H Chart
+        </div>
+        <!-- Position summary -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:13px;">
+          <div style="font-weight:600; margin-bottom:8px;">Open Position</div>
+          <div style="color:var(--text-muted); text-align:center; padding:12px 0; font-size:12px;">No open positions</div>
+        </div>
+      </div>
+      <!-- Bottom Nav -->
+      <div class="mobile-bottom-nav">
+        <div class="mobile-nav-item active"><div class="mobile-nav-icon">&#9632;</div>Home</div>
+        <div class="mobile-nav-item"><div class="mobile-nav-icon">&#9670;</div>Position</div>
+        <div class="mobile-nav-item"><div class="mobile-nav-icon">&#9650;</div>Analytics</div>
+        <div class="mobile-nav-item"><div class="mobile-nav-icon">&#9881;</div>Control</div>
+        <div class="mobile-nav-item"><div class="mobile-nav-icon">&#9783;</div>More</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider" style="max-width:1200px; margin:60px auto;"></div>
+
+<!-- ═══════════════════ USER FLOWS ═══════════════════ -->
+<div class="section flow-section" id="flows">
+  <div class="section-title">Section 4</div>
+  <div class="section-heading">User Flows</div>
+
+  <!-- Flow 1 -->
+  <div class="flow-container">
+    <div class="flow-title"><span style="color:var(--accent);">&#9654;</span> Flow 1: Daily Monitoring (30 sec)</div>
+    <div class="flow-steps">
+      <div class="flow-step start">Dashboard<br><small>KPI check</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Chart<br><small>Market view</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Position<br><small>SL/TP check</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step end">Done<br><small>All clear</small></div>
+    </div>
+  </div>
+
+  <!-- Flow 2 -->
+  <div class="flow-container">
+    <div class="flow-title"><span style="color:var(--negative);">&#9654;</span> Flow 2: Emergency Response</div>
+    <div class="flow-steps">
+      <div class="flow-step start">Telegram<br><small>Alert received</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Dashboard<br><small>Assess situation</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step danger">Close Position<br><small>Market sell</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step danger">Stop Engine<br><small>Halt trading</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step end">Safe<br><small>Monitor</small></div>
+    </div>
+  </div>
+
+  <!-- Flow 3 -->
+  <div class="flow-container">
+    <div class="flow-title"><span style="color:var(--warning);">&#9654;</span> Flow 3: Strategy Evaluation</div>
+    <div class="flow-steps">
+      <div class="flow-step start">Analytics<br><small>PnL review</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Compare<br><small>STR-001 vs 005</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step action">Decide<br><small>Switch strategy?</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step action">Control<br><small>Apply change</small></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step end">Active<br><small>New strategy</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<div class="doc-footer">
+  TraderJ Dashboard &mdash; Visual Storyboard &mdash; 2026-03-22<br>
+  Design System: Financial Dashboard Dark &bull; Fira Code + Fira Sans &bull; shadcn/ui<br>
+  Data Source: TraderJ Engine API (https://traderj-engine.fly.dev/api/v1)
+</div>
+
+</body>
+</html>

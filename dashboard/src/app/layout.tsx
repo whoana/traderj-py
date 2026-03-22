@@ -2,23 +2,24 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { TopNav } from "@/components/layout/TopNav";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "traderj",
-  description: "BTC/KRW Automated Trading Dashboard",
+  title: "TraderJ Dashboard",
+  description: "BTC/KRW Automated Trading Monitor",
 };
 
 export default function RootLayout({
@@ -28,9 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
+      <body className={`${inter.variable} ${jetbrains.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          {children}
+          <TopNav />
+          <main className="mx-auto max-w-7xl px-3 pb-6 pt-3 sm:px-4 sm:pb-8 sm:pt-4">{children}</main>
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>

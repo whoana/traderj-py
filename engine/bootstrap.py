@@ -24,6 +24,7 @@ from engine.execution.order_manager import OrderManager
 from engine.execution.position_manager import PositionManager
 from engine.execution.risk_manager import RiskManager
 from engine.exchange.upbit_client import UpbitExchangeClient
+from engine.data.macro import MacroCollector
 from engine.loop.ipc_server import IPCServer
 from engine.loop.state import StateMachine
 from engine.loop.trading_loop import TradingLoop
@@ -208,7 +209,11 @@ async def bootstrap(
     # Store trading loops map on app for multi-strategy access
     app.register("trading_loops", trading_loops)
 
-    # [8] IPCServer with command routing
+    # [8] MacroCollector — fetch macro indicators every 5 minutes
+    macro_collector = MacroCollector(data_store=store)
+    app.register("macro_collector", macro_collector)
+
+    # [9] IPCServer with command routing
     ipc = IPCServer(app.event_bus, store)
     ipc.set_command_handler(_make_command_handler(trading_loops))
     app.register("ipc_server", ipc)
@@ -273,5 +278,15 @@ async def bootstrap_and_run(settings: AppSettings | None = None) -> None:
             job_id=f"trading-tick-{sid}",
         )
         logger.info("Registered scheduler job for strategy %s", sid)
+
+    # Macro collector — run immediately then every 5 minutes
+    macro_collector: MacroCollector = app.get("macro_collector")
+    await macro_collector.collect()
+    app.scheduler.add_interval_job(
+        macro_collector.collect,
+        seconds=300,
+        job_id="macro-collect",
+    )
+    logger.info("Registered macro collector job (every 5m)")
 
     await app.run()

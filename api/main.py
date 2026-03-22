@@ -32,7 +32,7 @@ from api.routes import (
     risk,
     signals,
 )
-from api.routes import balance, config, control, engine, version
+from api.routes import balance, config, control, engine, passkeys, version
 from api.ws import handler as ws_handler
 from api.ws.manager import manager as ws_manager
 
@@ -129,6 +129,7 @@ def _configure_app(app: FastAPI) -> FastAPI:
     app.include_router(control.router, prefix="/api/v1")
     app.include_router(config.router, prefix="/api/v1")
     app.include_router(version.router, prefix="/api/v1")
+    app.include_router(passkeys.router, prefix="/api/v1")
 
     # ── WebSocket ─────────────────────────────────────────────────
     app.include_router(ws_handler.router)

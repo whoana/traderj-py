@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>타당성 검토: Claude 스킬 기반 TradingAgents 구현</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --accent: #58a6ff; --green: #3fb950; --warn: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; color: #fff; border-bottom: 2px solid var(--accent); padding-bottom: 1rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; color: var(--accent); margin: 2.5rem 0 1rem; padding-left: 0.75rem; border-left: 4px solid var(--accent); }
+  h3 { font-size: 1.1rem; color: var(--purple); margin: 1.5rem 0 0.75rem; }
+  h4 { font-size: 1rem; color: var(--pink); margin: 1rem 0 0.5rem; }
+  p { margin-bottom: 0.75rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+  .card-green { border-left: 4px solid var(--green); }
+  .card-warn { border-left: 4px solid var(--warn); }
+  .card-danger { border-left: 4px solid var(--danger); }
+  .card-accent { border-left: 4px solid var(--accent); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { padding: 0.6rem 0.8rem; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--surface2); color: var(--accent); font-weight: 600; }
+  td { background: var(--surface); }
+  code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; color: var(--pink); }
+  pre { background: var(--surface2); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 0.75rem 0; font-size: 0.85rem; line-height: 1.5; border: 1px solid var(--border); }
+  .verdict { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+  .v-yes { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .v-partial { background: rgba(210,153,34,0.15); color: var(--warn); border: 1px solid rgba(210,153,34,0.3); }
+  .v-no { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+  .v-recommend { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .summary-box { background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(188,140,255,0.08)); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; }
+  .flow { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre; overflow-x: auto; line-height: 1.6; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  li { margin: 0.3rem 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+  a { color: var(--accent); text-decoration: none; }
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 2rem; margin: 1.5rem 0; }
+  .toc a { display: block; padding: 4px 0; color: var(--text-muted); font-size: 0.9rem; }
+  .score-box { text-align: center; padding: 1.5rem; }
+  .score-big { font-size: 3rem; font-weight: 800; }
+  .score-label { font-size: 0.85rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<h1>타당성 검토: Claude 스킬 기반 TradingAgents 구현</h1>
+<p class="subtitle">
+  "Claude Code 스킬로 TradingAgents 멀티에이전트를 구현하고, Schedule로 무한 루프 트레이딩, 텔레그램으로 제어"<br>
+  검토일: 2026-03-22
+</p>
+
+<div class="toc">
+  <strong style="color: var(--accent);">목차</strong>
+  <a href="#s1">1. 결론 요약 (TL;DR)</a>
+  <a href="#s2">2. 세 가지 축 개별 검토</a>
+  <a href="#s3">3. 왜 순수 스킬 기반은 안 되는가 (상세)</a>
+  <a href="#s4">4. 권장 아키텍처: 하이브리드 구조</a>
+  <a href="#s5">5. 하이브리드 구조 구현 설계</a>
+  <a href="#s6">6. 비용 비교</a>
+  <a href="#s7">7. 실행 계획</a>
+</div>
+
+<!-- ======================== -->
+<h2 id="s1">1. 결론 요약 (TL;DR)</h2>
+<!-- ======================== -->
+
+<div class="grid-2">
+  <div class="card card-danger">
+    <div class="score-box">
+      <div class="score-big" style="color: var(--danger);">X</div>
+      <div class="score-label">순수 스킬 기반<br>TradingAgents 구현</div>
+    </div>
+    <p style="text-align:center"><span class="verdict v-no">불가 (구조적 한계)</span></p>
+  </div>
+  <div class="card card-green">
+    <div class="score-box">
+      <div class="score-big" style="color: var(--green);">O</div>
+      <div class="score-label">하이브리드 구조<br>(TraderJ 엔진 + LLM 스킬)</div>
+    </div>
+    <p style="text-align:center"><span class="verdict v-yes">강력 추천</span></p>
+  </div>
+</div>
+
+<div class="summary-box">
+  <p><strong>한 줄 결론:</strong> Claude Code 스킬만으로 실시간 BTC 트레이딩 봇을 돌리는 것은 <strong>택시를 타고 F1 레이스에 나가는 것</strong>과 같습니다.
+  택시(Claude)는 훌륭한 이동수단이지만, 레이스카(TraderJ 엔진)가 이미 있을 때 굳이 택시로 레이스할 이유가 없습니다.</p>
+  <p><strong>권장:</strong> TraderJ의 asyncio 엔진이 60초 루프를 계속 돌리고, 핵심 판단 지점에서만 Claude API를 호출하는 <strong>하이브리드 구조</strong>가 최적입니다.</p>
+</div>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s2">2. 세 가지 축 개별 검토</h2>
+<!-- ======================== -->
+
+<h3>축 1: TradingAgents 아키텍처를 Claude 스킬로 구현</h3>
+
+<table>
+  <tr>
+    <th style="width:30%">TradingAgents 컴포넌트</th>
+    <th style="width:25%">스킬로 구현 가능?</th>
+    <th style="width:45%">이유</th>
+  </tr>
+  <tr>
+    <td>4종 Analyst (Fundamental, Sentiment, News, Technical)</td>
+    <td><span class="verdict v-yes">가능</span></td>
+    <td>각 Analyst는 독립 프롬프트 → LLM 호출. 스킬 내 서브에이전트로 병렬 실행 가능</td>
+  </tr>
+  <tr>
+    <td>Bull/Bear Debate</td>
+    <td><span class="verdict v-yes">가능</span></td>
+    <td>기존 <code>talk-about</code> 스킬 패턴과 유사. 멀티에이전트 토론 구조 재활용 가능</td>
+  </tr>
+  <tr>
+    <td>Risk Debate (3인 토론)</td>
+    <td><span class="verdict v-yes">가능</span></td>
+    <td>Aggressive/Conservative/Neutral 관점 프롬프트 → 중위값 산출</td>
+  </tr>
+  <tr>
+    <td>Reflection Memory</td>
+    <td><span class="verdict v-partial">부분 가능</span></td>
+    <td>스킬 세션 간 상태 공유 불가. 파일 기반 메모리(JSON/SQLite)로 우회는 가능하나 벡터 검색은 불가</td>
+  </tr>
+  <tr>
+    <td>Signal Processing</td>
+    <td><span class="verdict v-yes">가능</span></td>
+    <td>LLM 출력에서 BUY/SELL/HOLD 추출은 프롬프트 엔지니어링으로 해결</td>
+  </tr>
+  <tr>
+    <td>LangGraph 오케스트레이션</td>
+    <td><span class="verdict v-partial">부분 가능</span></td>
+    <td>스킬 내 서브에이전트 체이닝으로 유사 구현 가능하나, 상태 그래프의 조건부 분기는 제한적</td>
+  </tr>
+  <tr>
+    <td>지속적 학습 루프</td>
+    <td><span class="verdict v-no">불가</span></td>
+    <td>스킬은 세션 단위 실행. 세션 간 학습 상태 전파 메커니즘 없음</td>
+  </tr>
+</table>
+
+<h3>축 2: Schedule 스킬로 무한 루프 트레이딩</h3>
+
+<div class="card card-danger">
+  <h4>Schedule 스킬의 실체</h4>
+  <p>Schedule 스킬은 <code>create_scheduled_task</code> 도구를 호출하여 cron/interval 기반 반복 작업을 등록합니다.
+  각 실행은 <strong>완전히 독립된 새 Claude 세션</strong>으로 시작됩니다.</p>
+
+  <table>
+    <tr><th>항목</th><th>Schedule 스킬</th><th>TraderJ 엔진</th></tr>
+    <tr>
+      <td>최소 주기</td>
+      <td>cron 기반 (최소 1분, 실질적으로 5~15분 권장)</td>
+      <td>60초 (APScheduler IntervalTrigger)</td>
+    </tr>
+    <tr>
+      <td>실행 지연</td>
+      <td>세션 시작 10~30초 + LLM 추론 5~30초 = <strong>15~60초</strong></td>
+      <td>tick() 함수 호출 <strong>&lt;1초</strong> (지표 계산만)</td>
+    </tr>
+    <tr>
+      <td>상태 유지</td>
+      <td><strong>불가</strong> (매 실행이 새 세션)</td>
+      <td>메모리 + DB 영구 보존</td>
+    </tr>
+    <tr>
+      <td>비용/실행</td>
+      <td>~3,000~10,000 토큰 (세션 부트스트랩 포함)</td>
+      <td>0원 (로컬 Python)</td>
+    </tr>
+    <tr>
+      <td>월 비용 (1분 주기)</td>
+      <td><strong>$200~600/월</strong></td>
+      <td><strong>$0</strong> (서버 전기료만)</td>
+    </tr>
+    <tr>
+      <td>신뢰성</td>
+      <td>LLM 환각, 타임아웃, API 장애 위험</td>
+      <td>결정론적, 예측 가능</td>
+    </tr>
+    <tr>
+      <td>포지션 추적</td>
+      <td>매번 DB에서 읽어야 함 (외부 저장소 필요)</td>
+      <td>메모리 + EventBus 실시간 추적</td>
+    </tr>
+    <tr>
+      <td>SL/TP 모니터링</td>
+      <td><strong>불가</strong> (세션 간 실시간 감시 불가)</td>
+      <td>MarketTickEvent로 매 틱 체크</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card card-warn">
+  <h4>핵심 문제: "빈 틱" 문제</h4>
+  <p>비유로 설명하면, TraderJ 엔진은 <strong>의사가 환자 옆에 24시간 대기</strong>하는 것이고,
+  Schedule 스킬은 <strong>1분마다 의사를 새로 불러서 처음부터 환자 차트를 읽게 하는 것</strong>입니다.</p>
+
+  <div class="flow">
+Schedule 기반 실행 (매 1분):
+────────────────────────────────────────────────────
+  [00:00] 새 Claude 세션 시작 (10~30초 부팅)
+  [00:20] 스킬 로딩, 컨텍스트 파악
+  [00:30] Upbit API 호출 → OHLCV 데이터 수집
+  [00:35] 지표 계산... 근데 잠깐, 이전 틱의 상태가 없음!
+          - 현재 포지션? → DB에서 읽어야 함
+          - 미실현 손익? → 다시 계산해야 함
+          - SL/TP 히트 여부? → 지난 1분간 모니터링 안 됨!  ⚠️
+          - 레짐 디바운스 카운트? → 어딘가에 저장해야 함
+  [00:50] 시그널 생성 → HOLD (대부분의 틱은 HOLD)
+  [00:55] 결과: "아무 것도 안 함"  ← $0.02 소비
+  ────────────────────────────────────────────────────
+
+  24시간 × 60틱 = 1,440회/일 × $0.02 = $28.80/일 = $864/월
+  그 중 실제 매매는 하루 2~5회뿐  ← 99.7%가 "헛수고"
+
+
+TraderJ 엔진 (상시 구동):
+────────────────────────────────────────────────────
+  [asyncio event loop - 항상 실행 중]
+  [00:00] tick() 호출 → 0.1초 만에 지표 계산 완료
+  [00:00.1] 메모리에서 즉시 포지션/상태 접근
+  [00:00.2] 시그널: HOLD → 0.2초에 완료, 다음 틱 대기
+  ────────────────────────────────────────────────────
+  비용: $0 (로컬 실행)
+  </div>
+</div>
+
+<h3>축 3: 텔레그램으로 결과 보고 및 제어</h3>
+
+<div class="card card-green">
+  <p><span class="verdict v-yes">완전 가능</span> &mdash; 그리고 TraderJ에 <strong>이미 구현되어 있습니다</strong>.</p>
+
+  <h4>현재 TraderJ 텔레그램 기능</h4>
+  <table>
+    <tr><th>기능</th><th>상태</th><th>구현 위치</th></tr>
+    <tr><td>매매 알림 (BUY/SELL)</td><td>구현됨</td><td><code>NotificationBridge → OrderFilledEvent</code></td></tr>
+    <tr><td>포지션 청산 + PnL 보고</td><td>구현됨</td><td><code>NotificationBridge → PositionClosedEvent</code></td></tr>
+    <tr><td>리스크 경보</td><td>구현됨</td><td><code>NotificationBridge → RiskAlertEvent</code></td></tr>
+    <tr><td>봇 상태 변경 알림</td><td>구현됨</td><td><code>NotificationBridge → BotStateChangeEvent</code></td></tr>
+    <tr><td>레짐 전환 알림</td><td>구현됨</td><td><code>NotificationBridge → RegimeChangeEvent</code></td></tr>
+    <tr><td>SL 발동 알림</td><td>구현됨</td><td><code>NotificationBridge → StopLossTriggeredEvent</code></td></tr>
+    <tr><td style="color:var(--warn)">텔레그램 → 봇 명령 (pause/resume/stop)</td><td style="color:var(--warn)">미구현</td><td>IPC만 지원 (Unix Socket)</td></tr>
+  </table>
+
+  <h4>미구현 부분: 텔레그램 명령 수신</h4>
+  <p>현재 봇 제어는 IPC(Unix Domain Socket) 또는 API를 통해서만 가능합니다.
+  텔레그램에서 직접 <code>/pause</code>, <code>/resume</code>, <code>/status</code> 같은 명령을 보내는 기능은 추가 개발 필요하지만, 구현 난이도가 낮습니다.</p>
+</div>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s3">3. 왜 순수 스킬 기반은 안 되는가 (상세)</h2>
+<!-- ======================== -->
+
+<div class="card card-danger">
+  <h3 style="color: var(--danger); margin-top: 0;">구조적 불일치 5가지</h3>
+
+  <h4>1. 세션 격리 (Session Isolation)</h4>
+  <p>Claude 스킬/스케줄은 매 실행이 <strong>완전히 새로운 세션</strong>입니다. 비유하면 <strong>매번 기억을 잃는 의사</strong>에게 환자를 맡기는 것입니다.
+  TraderJ의 EventBus, StateMachine, PositionManager는 모두 <strong>메모리 상주</strong>하며 실시간으로 상태를 추적하는데,
+  스킬은 이 연속성을 가질 수 없습니다.</p>
+
+  <h4>2. SL/TP 실시간 모니터링 불가</h4>
+  <p>TraderJ는 매 MarketTickEvent(60초)마다 현재가를 체크하여 Stop Loss, Take Profit, Trailing Stop을 감시합니다.
+  스킬 기반은 <strong>세션이 켜져 있는 순간에만</strong> 이런 체크가 가능합니다. 세션 간 1분의 공백 동안 급등/급락이 발생하면 SL이 발동되지 않습니다.</p>
+  <pre>
+위험 시나리오:
+  10:00:00 - Schedule 세션 실행 → BTC = 50,000,000원, SL = 48,500,000원 → "정상"
+  10:00:55 - 세션 종료
+  10:00:57 - BTC 급락 → 47,000,000원!  ← SL 발동해야 하지만 아무도 감시하지 않음
+  10:01:00 - 새 세션 시작...  ← 이미 SL 가격을 뚫고 내려감
+  10:01:30 - 세션 부팅 완료, 상황 파악 → "어? SL 뚫렸네" → 시장가 청산
+  ────────────────────────────────────────
+  결과: 3% 손절이 아니라 6% 손실 (SL 미발동으로 2배 손실)
+  </pre>
+
+  <h4>3. 비결정론적 실행</h4>
+  <p>LLM은 같은 입력에 다른 출력을 낼 수 있습니다. TraderJ의 <code>SignalGenerator</code>는 같은 OHLCV 데이터에 <strong>항상 같은 시그널</strong>을 생성하지만,
+  LLM 기반은 temperature, 컨텍스트 길이, 모델 버전에 따라 결과가 달라집니다.
+  이는 <strong>백테스트 불가능</strong>을 의미합니다.</p>
+
+  <h4>4. 지연 시간 (Latency)</h4>
+  <p>암호화폐 시장에서 BTC가 1분에 1~3% 움직이는 경우가 있습니다.
+  스킬 세션 시작(10~30초) + LLM 추론(5~30초) = <strong>15~60초 지연</strong>은 슬리피지를 크게 키웁니다.</p>
+
+  <h4>5. 비용 효율성</h4>
+  <p>60초 주기 실행 시 하루 1,440회, 월 43,200회의 LLM 세션이 필요합니다.
+  99% 이상이 "HOLD" (아무 행동 안 함)인데도 매번 비용이 발생합니다.</p>
+</div>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s4">4. 권장 아키텍처: 하이브리드 구조</h2>
+<!-- ======================== -->
+
+<div class="summary-box">
+  <p><strong>핵심 원칙:</strong> TraderJ 엔진(asyncio + APScheduler)이 <strong>항상 달리는 자동차</strong>이고,
+  Claude LLM은 <strong>필요할 때만 전화하는 전문가 자문단</strong>입니다.</p>
+</div>
+
+<div class="flow">
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    TraderJ 엔진 (항상 실행 중)                           │
+│                                                                          │
+│  ┌─────────────────────────────────────────────┐                        │
+│  │  APScheduler: 매 60초 tick()                 │                        │
+│  │                                             │                        │
+│  │  1. Upbit OHLCV 수집                        │                        │
+│  │  2. 기술적 지표 계산 (EMA, RSI, MACD, ADX)  │ ← 0.1초, 무료         │
+│  │  3. 레짐 감지 (ADX + BB Width)              │                        │
+│  │  4. 시그널 스코어 계산                      │                        │
+│  │  5. SL/TP/TrailingStop 실시간 감시          │                        │
+│  └─────────────┬───────────────────────────────┘                        │
+│                │                                                         │
+│       시그널 = BUY 또는 SELL?                                            │
+│         │              │                                                 │
+│        No             Yes ── 여기서만 LLM 호출! ──┐                     │
+│         │                                          │                     │
+│      HOLD → 대기                                   ▼                     │
+│                               ┌──────────────────────────────────┐      │
+│                               │  Claude API 호출 (httpx)          │      │
+│                               │                                  │      │
+│                               │  ① Sentiment Analyst             │      │
+│                               │  ② Bull/Bear Debate              │      │
+│                               │  ③ Risk Debate (3관점)           │      │
+│                               │  ④ News Gate (긴급 뉴스 체크)    │      │
+│                               │                                  │      │
+│                               │  결과: APPROVE / REJECT / ADJUST │      │
+│                               └──────────────┬───────────────────┘      │
+│                                              │                           │
+│                                    APPROVE → 주문 실행                  │
+│                                    REJECT  → 시그널 무시                │
+│                                    ADJUST  → 사이즈 조정 후 실행       │
+│                                              │                           │
+│                               ┌──────────────▼───────────────────┐      │
+│                               │  Telegram 알림 발송               │      │
+│                               │  "BUY 0.018 BTC @ 50,000,000     │      │
+│                               │   Bull/Bear 토론 결과: 승인       │      │
+│                               │   리스크 평가: 75% 사이즈"        │      │
+│                               └──────────────────────────────────┘      │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐       │
+│  │  포지션 청산 시 → Reflection (회고)                           │       │
+│  │  Claude API: "이 트레이드에서 뭘 배웠는가?" → JSON 저장      │       │
+│  └──────────────────────────────────────────────────────────────┘       │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐       │
+│  │  4시간 주기 (Scheduler cron)                                  │       │
+│  │  Claude API: 뉴스 스캔 + 감성 분석 → macro_score 업데이트    │       │
+│  └──────────────────────────────────────────────────────────────┘       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+외부:
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Telegram Bot (양방향)                                                   │
+│                                                                          │
+│  수신 ← 매매 알림, 리스크 경고, 레짐 전환, 일일 리포트, LLM 판단 사유  │
+│  송신 → /pause, /resume, /status, /emergency, /force_sell, /lock        │
+│         → IPCServer (Unix Socket) → TradingLoop 명령 처리              │
+└──────────────────────────────────────────────────────────────────────────┘
+</div>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s5">5. 하이브리드 구조 구현 설계</h2>
+<!-- ======================== -->
+
+<h3>5.1 새로 추가할 모듈</h3>
+
+<pre>
+engine/
+├── llm/                          # 신규 디렉토리
+│   ├── __init__.py
+│   ├── client.py                 # Anthropic/OpenAI 공통 클라이언트
+│   ├── prompts.py                # 프롬프트 템플릿 관리
+│   └── memory.py                 # Reflection 메모리 (JSON 기반)
+│
+├── strategy/
+│   ├── sentiment_analyzer.py     # 신규: LLM 감성분석 (4시간 주기)
+│   ├── signal_validator.py       # 신규: Bull/Bear 교차검증
+│   ├── news_gate.py              # 신규: 뉴스 이벤트 게이트
+│   └── reflection.py             # 신규: 트레이드 회고
+│
+├── execution/
+│   └── risk_evaluator.py         # 신규: 3관점 리스크 평가
+│
+└── notification/
+    └── telegram.py               # 확장: 명령 수신 (webhook/polling)
+</pre>
+
+<h3>5.2 LLM 클라이언트 설계</h3>
+
+<pre>
+# engine/llm/client.py
+
+class LLMClient:
+    """
+    TraderJ 엔진 내부에서 Claude API를 직접 호출.
+    Claude Code 스킬이 아닌, httpx로 Anthropic API를 직접 사용.
+    """
+
+    def __init__(self):
+        self._client = anthropic.AsyncAnthropic(
+            api_key=os.environ["ANTHROPIC_API_KEY"]
+        )
+        # 비용 절약: 빈도별 모델 분리
+        self._models = {
+            "fast": "claude-haiku-4-5-20251001",     # 감성분석, 뉴스 스캔
+            "deep": "claude-sonnet-4-6",              # Bull/Bear 토론, 회고
+        }
+
+    async def analyze(self, prompt: str, tier: str = "fast") -> LLMResponse:
+        response = await self._client.messages.create(
+            model=self._models[tier],
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,  # 일관성을 위해 낮은 temperature
+        )
+        return self._parse_response(response)
+</pre>
+
+<h3>5.3 텔레그램 양방향 제어 확장</h3>
+
+<pre>
+# engine/notification/telegram.py 확장
+
+class TelegramCommandReceiver:
+    """
+    Telegram Bot의 getUpdates (Long Polling)로 사용자 명령 수신.
+    EventBus를 통해 TradingLoop에 명령 전달.
+    """
+
+    COMMANDS = {
+        "/status":    "현재 봇 상태 + 포지션 + 미실현 PnL",
+        "/pause":     "트레이딩 일시정지",
+        "/resume":    "트레이딩 재개",
+        "/stop":      "봇 정지",
+        "/emergency": "긴급 포지션 청산 + 봇 정지",
+        "/force_sell":"현재 포지션 시장가 매도",
+        "/lock":      "레짐 자동전환 잠금",
+        "/unlock":    "레짐 자동전환 해제",
+        "/report":    "일일/주간 리포트 즉시 발송",
+        "/regime":    "현재 레짐 + 디바운스 상태 조회",
+        "/risk":      "리스크 상태 (연속손실, 일일PnL, 쿨다운)",
+    }
+
+    async def _poll_loop(self):
+        """Long polling으로 텔레그램 명령 수신"""
+        while self._running:
+            updates = await self._get_updates(timeout=30)
+            for update in updates:
+                cmd = self._parse_command(update)
+                if cmd:
+                    # IPC와 동일한 경로로 명령 전달
+                    await self._event_bus.publish(
+                        BotCommandEvent(command=cmd.action, strategy_id=cmd.strategy_id)
+                    )
+                    # 실행 결과 텔레그램으로 회신
+                    await self._notifier.send(f"명령 실행: {cmd.action}")
+</pre>
+
+<h3>5.4 LLM 호출 시점 (비용 최적화)</h3>
+
+<table>
+  <tr>
+    <th>호출 시점</th>
+    <th>빈도</th>
+    <th>모델</th>
+    <th>목적</th>
+    <th>비용/회</th>
+  </tr>
+  <tr>
+    <td>BUY 시그널 발생 시</td>
+    <td>~3~5회/일</td>
+    <td>Sonnet</td>
+    <td>Bull/Bear 교차검증 + 리스크 3관점 평가</td>
+    <td>~$0.01</td>
+  </tr>
+  <tr>
+    <td>포지션 청산 시</td>
+    <td>~2~3회/일</td>
+    <td>Sonnet</td>
+    <td>Reflection (회고 학습)</td>
+    <td>~$0.008</td>
+  </tr>
+  <tr>
+    <td>4시간 주기</td>
+    <td>6회/일</td>
+    <td>Haiku</td>
+    <td>뉴스 스캔 + 감성분석</td>
+    <td>~$0.002</td>
+  </tr>
+  <tr>
+    <td>레짐 전환 시 (큰 손실 포지션)</td>
+    <td>~1회/주</td>
+    <td>Sonnet</td>
+    <td>포지션 처리 판단</td>
+    <td>~$0.01</td>
+  </tr>
+  <tr>
+    <th colspan="4">일일 합계</th>
+    <th>~$0.08</th>
+  </tr>
+  <tr>
+    <th colspan="4">월간 합계</th>
+    <th style="color: var(--green)">~$2.4</th>
+  </tr>
+</table>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s6">6. 비용 비교</h2>
+<!-- ======================== -->
+
+<table>
+  <tr>
+    <th style="width:35%">구성</th>
+    <th style="width:20%">월 비용</th>
+    <th style="width:20%">SL 안전성</th>
+    <th style="width:25%">비고</th>
+  </tr>
+  <tr>
+    <td style="color:var(--danger)"><strong>A. 순수 Schedule 스킬</strong><br>(1분 주기, 모든 판단 LLM)</td>
+    <td style="color:var(--danger)"><strong>$400~900</strong></td>
+    <td style="color:var(--danger)">위험 (1분 공백)</td>
+    <td>구현 불가 수준의 한계</td>
+  </tr>
+  <tr>
+    <td style="color:var(--warn)"><strong>B. Schedule + TraderJ 엔진</strong><br>(Schedule이 분석만, 엔진이 실행)</td>
+    <td style="color:var(--warn)"><strong>$50~150</strong></td>
+    <td style="color:var(--green)">안전</td>
+    <td>불필요한 중간 레이어</td>
+  </tr>
+  <tr>
+    <td style="color:var(--green)"><strong>C. TraderJ 엔진 + Claude API 직접호출</strong><br>(하이브리드 - 권장!)</td>
+    <td style="color:var(--green)"><strong>$2~15</strong></td>
+    <td style="color:var(--green)">안전</td>
+    <td>최적 (필요한 순간만 호출)</td>
+  </tr>
+  <tr>
+    <td><strong>D. TraderJ 순수 규칙 기반</strong><br>(현재 상태, LLM 없음)</td>
+    <td><strong>$0</strong></td>
+    <td style="color:var(--green)">안전</td>
+    <td>LLM 이점 없음</td>
+  </tr>
+</table>
+
+<div class="card card-green">
+  <p><strong>C안(하이브리드)는 D안(현재) 대비 월 $2~15 추가 비용으로</strong>
+  감성분석, Bull/Bear 토론, 리스크 다관점 평가, 회고 학습이라는 <strong>4가지 AI 레이어</strong>를 얻습니다.
+  A안(순수 스킬) 대비 <strong>30~300배 저렴</strong>하면서 안전성은 압도적으로 높습니다.</p>
+</div>
+
+<!-- ======================== -->
+<hr>
+<h2 id="s7">7. 실행 계획</h2>
+<!-- ======================== -->
+
+<h3>7.1 Claude Code 스킬이 유용한 영역 (활용 가능!)</h3>
+
+<div class="card card-accent">
+  <p>Claude Code 스킬은 트레이딩 루프 자체가 아닌, <strong>운영/분석/보고 영역</strong>에서 강력합니다:</p>
+  <table>
+    <tr><th>활용 영역</th><th>스킬</th><th>설명</th></tr>
+    <tr>
+      <td>일일 트레이딩 리포트</td>
+      <td><code>schedule</code></td>
+      <td>매일 오전 9시, TraderJ DB에서 전일 거래 데이터를 읽어 분석 리포트 생성 → 텔레그램/이메일 발송</td>
+    </tr>
+    <tr>
+      <td>주간 전략 성과 분석</td>
+      <td><code>schedule</code> + <code>xlsx</code></td>
+      <td>매주 월요일, 전략별 승률/수익률/MDD 분석 스프레드시트 자동 생성</td>
+    </tr>
+    <tr>
+      <td>뉴스 브리핑</td>
+      <td><code>schedule</code></td>
+      <td>4시간마다 크립토 뉴스 요약 → 감성 점수 산출 → TraderJ DB에 macro_score 업데이트</td>
+    </tr>
+    <tr>
+      <td>전략 파라미터 튜닝</td>
+      <td><code>talk-about</code></td>
+      <td>에이전트 팀 토론으로 프리셋 파라미터 최적화 토론</td>
+    </tr>
+    <tr>
+      <td>기술적 분석 대시보드</td>
+      <td><code>morgan-stanley-ta</code></td>
+      <td>수동 요청 시 BTC 기술적 분석 리포트 생성</td>
+    </tr>
+  </table>
+</div>
+
+<h3>7.2 구현 로드맵</h3>
+
+<table>
+  <tr><th>단계</th><th>기간</th><th>내용</th></tr>
+  <tr>
+    <td style="color:var(--danger)"><strong>Phase 1</strong></td>
+    <td>1주</td>
+    <td><strong>텔레그램 양방향 제어</strong><br>
+    텔레그램 명령 수신(Long Polling) 구현 → /pause, /resume, /status, /emergency<br>
+    기존 IPC 경로와 통합</td>
+  </tr>
+  <tr>
+    <td style="color:var(--warn)"><strong>Phase 2</strong></td>
+    <td>2주</td>
+    <td><strong>LLM 클라이언트 + 감성분석</strong><br>
+    <code>engine/llm/client.py</code> (Anthropic API 직접 호출)<br>
+    <code>engine/strategy/sentiment_analyzer.py</code> (4시간 cron)<br>
+    Schedule 스킬로 일일 리포트 자동화 (운영 보조)</td>
+  </tr>
+  <tr>
+    <td style="color:var(--accent)"><strong>Phase 3</strong></td>
+    <td>2주</td>
+    <td><strong>Bull/Bear 시그널 검증 + 리스크 토론</strong><br>
+    <code>signal_validator.py</code> (BUY 시그널 전용)<br>
+    <code>risk_evaluator.py</code> (3관점 사이즈 조정)</td>
+  </tr>
+  <tr>
+    <td style="color:var(--purple)"><strong>Phase 4</strong></td>
+    <td>2주</td>
+    <td><strong>Reflection 학습 + 레짐전환 LLM 판단</strong><br>
+    <code>reflection.py</code> + JSON 메모리 저장소<br>
+    레짐 전환 시 큰 손실 포지션 LLM 판단 위임</td>
+  </tr>
+</table>
+
+<hr>
+
+<div class="summary-box">
+  <h3 style="color: var(--accent); margin-top: 0;">최종 결론</h3>
+  <table>
+    <tr>
+      <th>질문</th>
+      <th>답변</th>
+    </tr>
+    <tr>
+      <td>Claude 스킬로 TradingAgents 구현?</td>
+      <td><span class="verdict v-partial">개별 에이전트는 가능</span>, 전체 오케스트레이션은 불가</td>
+    </tr>
+    <tr>
+      <td>Schedule 스킬로 무한 루프 트레이딩?</td>
+      <td><span class="verdict v-no">비추천</span> — 비용, 안전성, 지연 모두 불리</td>
+    </tr>
+    <tr>
+      <td>텔레그램 보고 및 제어?</td>
+      <td><span class="verdict v-yes">완전 가능</span> — 기존 알림은 구현됨, 명령 수신만 추가</td>
+    </tr>
+    <tr>
+      <td style="color: var(--accent)"><strong>최적 전략</strong></td>
+      <td><span class="verdict v-recommend">하이브리드</span> — TraderJ 엔진 + Claude API 직접호출 + 텔레그램 양방향</td>
+    </tr>
+  </table>
+  <br>
+  <p>비유로 정리하면: <strong>TraderJ 엔진은 심장(항상 뛰어야 함)</strong>이고, <strong>Claude LLM은 뇌의 고차원 사고(필요할 때 깊이 생각)</strong>이며,
+  <strong>텔레그램은 신경계(감각 입력 + 운동 명령)</strong>입니다.
+  심장을 뇌로 대체할 수는 없지만, 뇌가 심장의 박동을 조절하는 것은 자연스럽습니다.</p>
+</div>
+
+<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 3rem;">
+  TraderJ Feasibility Study | 2026-03-22
+</p>
+
+</body>
+</html>

@@ -25,6 +25,7 @@ from datetime import UTC, datetime
 from engine.bootstrap import bootstrap
 from engine.config.settings import AppSettings
 from engine.data import create_data_store
+from engine.data.macro import MacroCollector
 from engine.loop.trading_loop import TradingLoop
 
 from shared.logging_config import setup_logging
@@ -94,6 +95,7 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = 
     await store.connect()
 
     api_task = None
+    macro_task = None
 
     try:
         app = await bootstrap(settings=settings, data_store=store)
@@ -110,10 +112,27 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = 
         # Start event bus
         await app.event_bus.start()
 
+        # Graceful shutdown via Ctrl+C
+        stop_event = asyncio.Event()
+        loop_ref = asyncio.get_running_loop()
+
         # Start all loops
         for sid, loop in trading_loops.items():
             await loop.start()
             logger.info("Started %s", sid)
+
+        # Start macro collector — initial fetch + periodic (every 5 min)
+        macro_collector: MacroCollector = app.get("macro_collector")
+        await macro_collector.collect()
+
+        async def _macro_periodic():
+            while not stop_event.is_set():
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=300)
+                except asyncio.TimeoutError:
+                    await macro_collector.collect()
+
+        macro_task = asyncio.create_task(_macro_periodic())
 
         # Start API server if enabled
         if enable_api:
@@ -131,10 +150,6 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = 
         )
 
         print()
-
-        # Graceful shutdown via Ctrl+C
-        stop_event = asyncio.Event()
-        loop_ref = asyncio.get_running_loop()
 
         def _signal_handler():
             print("\n  Ctrl+C 감지 — 안전하게 종료 중...")
@@ -231,12 +246,13 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = 
         )
 
         # Cleanup
-        if api_task and not api_task.done():
-            api_task.cancel()
-            try:
-                await api_task
-            except asyncio.CancelledError:
-                pass
+        for task in [api_task, macro_task]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         for loop in trading_loops.values():
             await loop.stop()
         await app.event_bus.stop()

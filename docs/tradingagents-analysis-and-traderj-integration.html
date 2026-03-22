@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents vs TraderJ - 분석 및 반영 가능 사항</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --accent: #58a6ff; --accent2: #3fb950; --warn: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 2rem; color: #fff; margin-bottom: 0.5rem; border-bottom: 2px solid var(--accent); padding-bottom: 1rem; }
+  h2 { font-size: 1.5rem; color: var(--accent); margin: 2.5rem 0 1rem; padding-left: 0.75rem; border-left: 4px solid var(--accent); }
+  h3 { font-size: 1.15rem; color: var(--purple); margin: 1.5rem 0 0.75rem; }
+  h4 { font-size: 1rem; color: var(--pink); margin: 1rem 0 0.5rem; }
+  p { margin-bottom: 0.75rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+  .card-accent { border-left: 4px solid var(--accent); }
+  .card-green { border-left: 4px solid var(--accent2); }
+  .card-warn { border-left: 4px solid var(--warn); }
+  .card-danger { border-left: 4px solid var(--danger); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { padding: 0.6rem 0.8rem; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--surface2); color: var(--accent); font-weight: 600; }
+  td { background: var(--surface); }
+  code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; color: var(--pink); }
+  pre { background: var(--surface2); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 0.75rem 0; font-size: 0.85rem; line-height: 1.5; border: 1px solid var(--border); }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin: 2px; }
+  .tag-high { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+  .tag-mid { background: rgba(210,153,34,0.15); color: var(--warn); border: 1px solid rgba(210,153,34,0.3); }
+  .tag-low { background: rgba(63,185,80,0.15); color: var(--accent2); border: 1px solid rgba(63,185,80,0.3); }
+  .tag-info { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .priority-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; }
+  .p-critical { background: rgba(248,81,73,0.2); color: var(--danger); }
+  .p-high { background: rgba(210,153,34,0.2); color: var(--warn); }
+  .p-medium { background: rgba(88,166,255,0.2); color: var(--accent); }
+  .flow-diagram { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre; overflow-x: auto; line-height: 1.6; color: var(--text); }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+  .summary-box { background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(188,140,255,0.08)); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; }
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  li { margin: 0.3rem 0; }
+  .comparison-header { display: flex; justify-content: space-between; align-items: center; }
+  .score { font-size: 2rem; font-weight: 800; }
+  .score-label { font-size: 0.8rem; color: var(--text-muted); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 2rem; margin: 1.5rem 0; }
+  .toc a { display: block; padding: 4px 0; color: var(--text-muted); font-size: 0.9rem; }
+  .toc a:hover { color: var(--accent); }
+  .roadmap-item { display: flex; gap: 1rem; align-items: flex-start; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+  .roadmap-phase { min-width: 80px; font-weight: 700; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; text-align: center; }
+  .phase-1 { background: rgba(248,81,73,0.2); color: var(--danger); }
+  .phase-2 { background: rgba(210,153,34,0.2); color: var(--warn); }
+  .phase-3 { background: rgba(88,166,255,0.2); color: var(--accent); }
+  .phase-4 { background: rgba(188,140,255,0.2); color: var(--purple); }
+</style>
+</head>
+<body>
+
+<h1>TradingAgents vs TraderJ</h1>
+<p class="subtitle">
+  TauricResearch/TradingAgents 레포 분석 및 TraderJ 반영 가능 사항 정리<br>
+  작성일: 2026-03-21 | 소스: <a href="https://github.com/TauricResearch/TradingAgents">github.com/TauricResearch/TradingAgents</a>
+</p>
+
+<div class="toc">
+  <strong style="color: var(--accent);">목차</strong>
+  <a href="#part1">Part 1. TradingAgents 레포 분석</a>
+  <a href="#part2">Part 2. 아키텍처 비교: TradingAgents vs TraderJ</a>
+  <a href="#part3">Part 3. TraderJ에 반영 가능한 사항 (7개)</a>
+  <a href="#part4">Part 4. 구현 로드맵</a>
+</div>
+
+<!-- ============================================== -->
+<h2 id="part1">Part 1. TradingAgents 레포 분석</h2>
+<!-- ============================================== -->
+
+<h3>1.1 프로젝트 개요</h3>
+<div class="card card-accent">
+  <p><strong>TradingAgents</strong>는 LLM 기반 멀티 에이전트 프레임워크로, 실제 트레이딩 팀의 역할 분담 구조를 시뮬레이션합니다.
+  비유하자면, "AI 투자 회사"를 통째로 만들어 놓은 것 &mdash; 애널리스트, 리서처, 트레이더, 리스크 매니저가 각자 역할을 수행하고 토론을 통해 의사결정을 내립니다.</p>
+  <br>
+  <table>
+    <tr><th>항목</th><th>내용</th></tr>
+    <tr><td>언어</td><td>Python 3.13+</td></tr>
+    <tr><td>핵심 프레임워크</td><td>LangGraph (상태 기반 에이전트 오케스트레이션)</td></tr>
+    <tr><td>LLM 지원</td><td>OpenAI, Google, Anthropic, xAI, OpenRouter, Ollama</td></tr>
+    <tr><td>데이터 소스</td><td>yfinance, Alpha Vantage</td></tr>
+    <tr><td>라이센스</td><td>Apache 2.0</td></tr>
+    <tr><td>논문</td><td>arXiv: 2412.20138</td></tr>
+  </table>
+</div>
+
+<h3>1.2 멀티 에이전트 아키텍처</h3>
+
+<div class="flow-diagram">
+                         ┌─────────────────────────────────────┐
+                         │         Input: Ticker + Date         │
+                         └──────────────┬──────────────────────┘
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    ▼                   ▼                   ▼                   ▼
+           ┌──────────────┐  ┌───────────────┐  ┌──────────────┐  ┌──────────────────┐
+           │  Fundamentals │  │   Sentiment   │  │     News     │  │    Technical     │
+           │   Analyst     │  │   Analyst     │  │   Analyst    │  │    Analyst       │
+           │              │  │              │  │              │  │                  │
+           │ 재무제표,     │  │ 소셜미디어,  │  │ 매크로뉴스,  │  │ MACD, RSI,       │
+           │ 밸류에이션    │  │ 감성점수     │  │ 내부자거래   │  │ 패턴분석         │
+           └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘
+                  │                  │                  │                   │
+                  └──────────────────┼──────────────────┘                   │
+                                     ▼                                     │
+                         ┌─────────────────────────────────────┐           │
+                         │     Structured Debate (N rounds)     │◄──────────┘
+                         │                                     │
+                         │  ┌───────────┐    ┌───────────┐    │
+                         │  │   Bull     │ vs │   Bear    │    │
+                         │  │ Researcher │    │ Researcher│    │
+                         │  └───────────┘    └───────────┘    │
+                         │         │              │            │
+                         │         ▼              ▼            │
+                         │  ┌────────────────────────────┐    │
+                         │  │   Investment Judge          │    │
+                         │  │   (토론 종합 판단)          │    │
+                         │  └────────────────────────────┘    │
+                         └──────────────┬──────────────────────┘
+                                        │
+                                        ▼
+                         ┌─────────────────────────────────────┐
+                         │          Trader Agent                │
+                         │  (매매 타이밍 + 포지션 사이징 결정)  │
+                         └──────────────┬──────────────────────┘
+                                        │
+                         ┌──────────────┼──────────────────────┐
+                         ▼                                     ▼
+              ┌─────────────────────┐          ┌─────────────────────────┐
+              │   Risk Debate        │          │   Risk Management       │
+              │                     │          │                         │
+              │ Aggressive Debator  │          │ 변동성, 유동성 평가     │
+              │ Conservative Debator│          │ 포트폴리오 제약 체크    │
+              │ Neutral Debator     │          │                         │
+              └─────────┬───────────┘          └────────────┬────────────┘
+                        │                                   │
+                        └──────────────┬────────────────────┘
+                                       ▼
+                         ┌─────────────────────────────────────┐
+                         │      Portfolio Manager               │
+                         │  (최종 승인/거절 → 주문 실행)        │
+                         └──────────────┬──────────────────────┘
+                                        │
+                                        ▼
+                         ┌─────────────────────────────────────┐
+                         │        Reflection & Memory           │
+                         │  (결과 분석 → 각 에이전트 학습)      │
+                         └─────────────────────────────────────┘
+</div>
+
+<h3>1.3 핵심 메커니즘 상세</h3>
+
+<div class="grid-2">
+  <div class="card card-green">
+    <h4>Structured Debate (구조적 토론)</h4>
+    <p>Bull/Bear 리서처가 N라운드 토론 후 Investment Judge가 종합 판단합니다. 비유하면 <strong>법정 변론</strong>과 같습니다 &mdash; 검찰(Bear)과 변호인(Bull)이 각자 논거를 펴고 판사(Judge)가 판결합니다.</p>
+    <ul>
+      <li>Bull: 상승 근거 + 기회 요인 제시</li>
+      <li>Bear: 하락 위험 + 리스크 요인 반박</li>
+      <li>Judge: 양측 논거 종합 → 최종 방향 결정</li>
+      <li><code>max_debate_rounds</code>로 토론 깊이 조절</li>
+    </ul>
+  </div>
+  <div class="card card-purple">
+    <h4>Risk Debate (리스크 토론)</h4>
+    <p>리스크 관리에도 <strong>3인 토론</strong> 구조를 적용합니다:</p>
+    <ul>
+      <li><strong>Aggressive Debator</strong>: "수익 기회가 크니 리스크를 감수하자"</li>
+      <li><strong>Conservative Debator</strong>: "변동성이 높으니 축소/거부하자"</li>
+      <li><strong>Neutral Debator</strong>: 양측 의견 중재, 균형점 제안</li>
+    </ul>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card card-accent">
+    <h4>Reflection & Memory (회고 학습)</h4>
+    <p>비유하면 <strong>트레이딩 일지</strong>를 자동으로 쓰는 것. 매 사이클 후 각 에이전트가 "이번에 뭘 잘했고 뭘 틀렸는지" 반성합니다.</p>
+    <ul>
+      <li>Bull/Bear/Trader/Judge/RiskMgr 각각 독립 회고</li>
+      <li>시장 상황 + 결과(손익)를 묶어 메모리에 저장</li>
+      <li>다음 사이클에서 유사 상황 조회 → 판단에 반영</li>
+      <li><code>memory.add_situations([(situation, result)])</code></li>
+    </ul>
+  </div>
+  <div class="card card-warn">
+    <h4>Signal Processing (시그널 처리)</h4>
+    <p>Trader Agent의 분석 결과에서 최종 매매 시그널을 추출합니다. LLM의 자연어 출력에서 <strong>BUY/SELL/HOLD + 확신도 + 포지션 사이즈</strong>를 구조화합니다.</p>
+  </div>
+</div>
+
+<h3>1.4 디렉토리 구조</h3>
+<pre>
+TradingAgents/
+├── tradingagents/
+│   ├── agents/
+│   │   ├── analysts/        # 4종 애널리스트 (fundamental, sentiment, news, technical)
+│   │   ├── researchers/     # Bull/Bear 리서처
+│   │   ├── trader/          # 트레이더 에이전트
+│   │   ├── risk_mgmt/       # 리스크 토론 (aggressive, conservative, neutral)
+│   │   ├── managers/        # 포트폴리오 매니저
+│   │   └── utils/           # 공통 유틸리티
+│   ├── graph/
+│   │   ├── trading_graph.py     # 메인 오케스트레이터 (LangGraph)
+│   │   ├── conditional_logic.py # 분기 라우팅
+│   │   ├── signal_processing.py # 시그널 추출
+│   │   ├── propagation.py       # 상태 전파
+│   │   └── reflection.py        # 회고 학습
+│   ├── dataflows/               # 데이터 파이프라인
+│   ├── llm_clients/             # 멀티 LLM 클라이언트
+│   └── default_config.py        # 기본 설정
+├── cli/                         # CLI 인터페이스
+└── main.py                      # 엔트리포인트
+</pre>
+
+<!-- ============================================== -->
+<hr class="section-divider">
+<h2 id="part2">Part 2. 아키텍처 비교: TradingAgents vs TraderJ</h2>
+<!-- ============================================== -->
+
+<table>
+  <tr>
+    <th style="width:25%">영역</th>
+    <th style="width:37%">TradingAgents</th>
+    <th style="width:38%">TraderJ</th>
+  </tr>
+  <tr>
+    <td><strong>의사결정 방식</strong></td>
+    <td>LLM 멀티 에이전트 토론<br><span class="tag tag-info">AI 기반</span></td>
+    <td>규칙 기반 기술적 지표 스코어링<br><span class="tag tag-info">알고리즘 기반</span></td>
+  </tr>
+  <tr>
+    <td><strong>분석 범위</strong></td>
+    <td>펀더멘탈 + 감성 + 뉴스 + 기술적<br><span class="tag tag-high">4종 분석</span></td>
+    <td>기술적 지표 + 매크로 점수 (Fear&Greed 등)<br><span class="tag tag-mid">2종 분석</span></td>
+  </tr>
+  <tr>
+    <td><strong>레짐 감지</strong></td>
+    <td>없음 (LLM이 상황 판단)<br><span class="tag tag-low">암묵적</span></td>
+    <td>ADX + BB Width → 4 레짐 자동 분류<br><span class="tag tag-high">명시적</span></td>
+  </tr>
+  <tr>
+    <td><strong>리스크 관리</strong></td>
+    <td>3인 토론 (공격/보수/중립) + 포트폴리오 매니저 최종 승인</td>
+    <td>ATR 기반 사이징 + 손실제한 + CircuitBreaker + 변동성캡</td>
+  </tr>
+  <tr>
+    <td><strong>학습/적응</strong></td>
+    <td>Reflection Memory (LLM이 과거 결과 회고 저장 → 재활용)</td>
+    <td>없음 (고정 파라미터, 프리셋 전환만)</td>
+  </tr>
+  <tr>
+    <td><strong>전략 전환</strong></td>
+    <td>없음 (단일 분석 → 단일 판단)</td>
+    <td>RegimeSwitchManager (디바운스, 쿨다운, 수동잠금)</td>
+  </tr>
+  <tr>
+    <td><strong>포지션 관리</strong></td>
+    <td>LLM이 사이즈 결정 → 시뮬 거래소 실행</td>
+    <td>ATR 역비례 사이징 + SL/TP/TrailingStop 자동</td>
+  </tr>
+  <tr>
+    <td><strong>실행 환경</strong></td>
+    <td>시뮬레이션 전용 (리서치 목적)</td>
+    <td>실거래 가능 (Upbit) + Paper Trading</td>
+  </tr>
+  <tr>
+    <td><strong>데이터 소스</strong></td>
+    <td>yfinance / Alpha Vantage (미국 주식)</td>
+    <td>Upbit API (한국 암호화폐)</td>
+  </tr>
+  <tr>
+    <td><strong>오케스트레이션</strong></td>
+    <td>LangGraph (DAG 기반 워크플로우)</td>
+    <td>EventBus + StateMachine (이벤트 기반)</td>
+  </tr>
+</table>
+
+<div class="summary-box">
+  <h4>핵심 차이점 요약</h4>
+  <p>TradingAgents는 <strong>"AI가 토론해서 판단"</strong>하는 모델이고, TraderJ는 <strong>"수학 공식으로 계산해서 판단"</strong>하는 모델입니다.
+  비유하면 TradingAgents는 <em>투자위원회 회의</em>, TraderJ는 <em>자동 계산기</em>에 가깝습니다.</p>
+  <p>두 접근 방식은 상호 배타적이지 않습니다. TraderJ의 빠르고 결정론적인 엔진 위에 TradingAgents의 핵심 아이디어를 <strong>선별적으로 얹는 것</strong>이 최적의 전략입니다.</p>
+</div>
+
+<!-- ============================================== -->
+<hr class="section-divider">
+<h2 id="part3">Part 3. TraderJ에 반영 가능한 사항 (7개)</h2>
+<!-- ============================================== -->
+
+<!-- ===== 반영 사항 1 ===== -->
+<div class="card card-danger">
+  <div class="comparison-header">
+    <h3 style="margin:0">1. Sentiment Analyst &mdash; 감성 분석 레이어 추가</h3>
+    <span class="priority-badge p-critical">P0 - 최우선</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> LLM이 소셜미디어/뉴스 감성을 자연어로 분석하여 점수화</p>
+  <p><strong>TraderJ 현재:</strong> Fear &amp; Greed Index, 김치프리미엄 등 매크로 점수만 반영 (<code>macro_weight</code>)</p>
+
+  <h4>반영 방안: LLM 감성분석 모듈 추가</h4>
+  <pre>
+# 새로운 컴포넌트: engine/strategy/sentiment_analyzer.py
+
+class SentimentAnalyzer:
+    """
+    주기적으로(예: 4시간) LLM에 최근 뉴스/소셜 데이터를 입력하여
+    감성 점수(-1.0 ~ +1.0)를 산출.
+    SignalGenerator의 macro_score 자리에 통합.
+    """
+
+    async def analyze(self, symbol: str) -> SentimentResult:
+        # 1. 뉴스 데이터 수집 (CryptoPanic, Reddit, X API)
+        news = await self.fetch_recent_news(symbol)
+
+        # 2. LLM에 감성 분석 요청
+        prompt = f"""
+        다음 {symbol} 관련 뉴스를 분석하고 감성 점수를 산출하세요.
+        점수: -1.0(극도 부정) ~ +1.0(극도 긍정)
+        뉴스: {news}
+        """
+        result = await self.llm_client.analyze(prompt)
+
+        # 3. 구조화된 결과 반환
+        return SentimentResult(
+            score=result.score,        # -1.0 ~ +1.0
+            confidence=result.conf,     # 0.0 ~ 1.0
+            key_factors=result.factors,
+            timestamp=now()
+        )
+  </pre>
+
+  <h4>시그널 파이프라인 통합 위치</h4>
+  <pre>
+# 현재 8단계 파이프라인의 Step 7을 확장:
+# 기존: technical × (1 - macro_weight) + macro × macro_weight
+# 변경: technical × tech_w + macro × macro_w + sentiment × sent_w
+#       (tech_w + macro_w + sent_w = 1.0)
+
+final_score = (
+    technical_score * preset.tech_weight +      # 예: 0.65
+    macro_score * preset.macro_weight +          # 예: 0.15
+    sentiment_score * preset.sentiment_weight    # 예: 0.20  ← 신규
+)
+  </pre>
+
+  <table>
+    <tr><th>장점</th><th>주의사항</th></tr>
+    <tr>
+      <td>기술적 지표가 놓치는 "시장 분위기" 포착<br>급변 뉴스(규제, 해킹 등)에 빠른 반응<br>매크로 점수보다 세분화된 분석</td>
+      <td>LLM API 비용 (4시간 주기로 제한)<br>감성 점수의 지연 (실시간 아님)<br>환각(hallucination) 리스크 → confidence 임계값 필요</td>
+    </tr>
+  </table>
+  <p><span class="tag tag-high">구현 복잡도: 중</span> <span class="tag tag-info">예상 기간: 1~2주</span></p>
+</div>
+
+<!-- ===== 반영 사항 2 ===== -->
+<div class="card card-danger">
+  <div class="comparison-header">
+    <h3 style="margin:0">2. Bull/Bear Debate &mdash; 매매 시그널 교차 검증</h3>
+    <span class="priority-badge p-critical">P0 - 최우선</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> Bull/Bear 리서처가 N라운드 토론 후 Judge가 종합 판단</p>
+  <p><strong>TraderJ 현재:</strong> 단일 시그널 점수 → 임계값 비교 → 즉시 BUY/SELL/HOLD</p>
+
+  <h4>반영 방안: LLM 기반 시그널 2차 검증기</h4>
+  <p>비유하면, 현재 TraderJ는 "계산기가 OK하면 바로 매수"하는데, 여기에 <strong>"투자위원회 승인"</strong> 단계를 추가하는 것입니다.</p>
+  <pre>
+# engine/strategy/signal_validator.py
+
+class SignalValidator:
+    """
+    SignalGenerator가 BUY/SELL 시그널을 생성하면,
+    LLM에 Bull/Bear 관점으로 교차 검증을 요청.
+    높은 확신도일 때만 시그널 통과.
+    """
+
+    async def validate(self, signal: SignalResult, market_context: dict) -> ValidationResult:
+        # 1. Bull 관점 분석
+        bull_case = await self.llm_client.analyze(
+            f"현재 {signal.direction} 시그널의 강점과 상승 근거를 분석하세요.\n"
+            f"기술지표: {market_context['indicators']}\n"
+            f"시장상황: {market_context['regime']}"
+        )
+
+        # 2. Bear 관점 분석
+        bear_case = await self.llm_client.analyze(
+            f"현재 {signal.direction} 시그널의 약점과 하락 위험을 분석하세요.\n"
+            f"기술지표: {market_context['indicators']}\n"
+            f"시장상황: {market_context['regime']}"
+        )
+
+        # 3. 종합 판단 (Judge)
+        judgment = await self.llm_client.analyze(
+            f"Bull 의견: {bull_case}\nBear 의견: {bear_case}\n"
+            f"원본 시그널: {signal.direction} (점수: {signal.score})\n"
+            f"이 시그널을 승인하시겠습니까? (approve/reject/reduce_size)"
+        )
+
+        return ValidationResult(
+            approved=judgment.decision,
+            adjusted_score=judgment.adjusted_score,
+            reasoning=judgment.reasoning
+        )
+  </pre>
+
+  <h4>트레이딩 루프 통합</h4>
+  <pre>
+# engine/loop/trading_loop.py 수정
+# 기존: signal → risk_check → execute
+# 변경: signal → LLM_validate → risk_check → execute
+
+async def _process_signal(self, signal: SignalResult):
+    if signal.direction in (Direction.BUY, Direction.SELL):
+        # 새로운 2차 검증 단계
+        validation = await self.signal_validator.validate(signal, self.market_context)
+
+        if not validation.approved:
+            logger.info(f"LLM Judge rejected signal: {validation.reasoning}")
+            return  # 시그널 거부
+
+        signal = signal.with_adjusted_score(validation.adjusted_score)
+
+    # 기존 리스크 체크 → 주문 실행
+    await self.risk_manager.pre_validate(signal)
+    await self.order_manager.handle(signal)
+  </pre>
+
+  <table>
+    <tr><th>장점</th><th>주의사항</th></tr>
+    <tr>
+      <td>규칙 기반의 "맹목적" 시그널을 AI가 필터링<br>과매매 방지 (의심스러운 시그널 거부)<br>거부 사유가 자연어로 기록 → 분석에 유용</td>
+      <td>LLM 응답 지연 (2~5초) → 급등/급락 시 타이밍 이슈<br>API 비용 (매 시그널마다 호출)<br><strong>대안:</strong> BUY 시그널만 검증, SELL은 즉시 실행</td>
+    </tr>
+  </table>
+  <p><span class="tag tag-high">구현 복잡도: 중</span> <span class="tag tag-info">예상 기간: 1~2주</span></p>
+</div>
+
+<!-- ===== 반영 사항 3 ===== -->
+<div class="card card-warn">
+  <div class="comparison-header">
+    <h3 style="margin:0">3. Reflection Memory &mdash; 트레이딩 회고 학습 시스템</h3>
+    <span class="priority-badge p-high">P1 - 높음</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> 매 사이클 후 LLM이 결과를 반성하고 메모리에 저장, 유사 상황에서 참조</p>
+  <p><strong>TraderJ 현재:</strong> 학습 메커니즘 없음 &mdash; 같은 실수를 반복할 수 있음</p>
+
+  <h4>반영 방안: 트레이드 회고 모듈</h4>
+  <p>비유하면, <strong>트레이딩 일지를 자동으로 작성하고, 다음에 비슷한 상황이 오면 꺼내 읽는 것</strong>입니다.</p>
+  <pre>
+# engine/strategy/reflection.py
+
+class TradeReflector:
+    """
+    포지션 청산 시 LLM이 해당 트레이드를 분석하고
+    교훈을 벡터DB/JSON에 저장.
+    다음 BUY 시그널 시 유사 상황 검색 → 판단에 반영.
+    """
+
+    async def reflect_on_close(self, position: Position, market_snapshot: dict):
+        prompt = f"""
+        트레이드 결과를 분석하세요:
+        - 진입: {position.entry_price} / 청산: {position.current_price}
+        - 손익: {position.realized_pnl} ({position.pnl_pct}%)
+        - 보유기간: {position.holding_duration}
+        - 진입 시 레짐: {position.entry_regime}
+        - 청산 사유: {position.close_reason}
+
+        시장 상황: {market_snapshot}
+
+        질문:
+        1. 이 트레이드에서 잘한 점은?
+        2. 개선할 점은?
+        3. 유사 상황 재발 시 어떻게 해야 하는가?
+        """
+
+        reflection = await self.llm_client.analyze(prompt)
+
+        # 메모리에 저장 (상황 → 결과 → 교훈)
+        await self.memory_store.save({
+            "market_situation": market_snapshot,
+            "trade_result": position.to_dict(),
+            "lesson": reflection.lesson,
+            "regime": position.entry_regime,
+            "timestamp": now()
+        })
+
+    async def recall_similar(self, current_situation: dict, top_k: int = 3):
+        """유사 과거 상황 검색 → 교훈 반환"""
+        return await self.memory_store.search_similar(current_situation, top_k)
+  </pre>
+
+  <h4>활용 흐름</h4>
+  <div class="flow-diagram">
+포지션 청산 (PositionClosedEvent)
+    │
+    ▼
+TradeReflector.reflect_on_close()
+    │
+    ├─ LLM이 트레이드 분석
+    ├─ 교훈 추출
+    └─ 메모리에 저장
+
+    ... 시간 경과 ...
+
+다음 BUY 시그널 발생
+    │
+    ▼
+TradeReflector.recall_similar(current_market)
+    │
+    ├─ 유사 과거 상황 3개 검색
+    ├─ "지난번 이런 상황에서 손실봤음, RSI 과매수 구간 진입은 피할 것"
+    └─ SignalValidator에 컨텍스트로 전달 → 판단에 반영
+  </div>
+
+  <p><span class="tag tag-high">구현 복잡도: 높음</span> <span class="tag tag-info">예상 기간: 2~3주</span></p>
+</div>
+
+<!-- ===== 반영 사항 4 ===== -->
+<div class="card card-warn">
+  <div class="comparison-header">
+    <h3 style="margin:0">4. Risk Debate &mdash; 리스크 관리 다관점 평가</h3>
+    <span class="priority-badge p-high">P1 - 높음</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> Aggressive / Conservative / Neutral 3인이 리스크 토론</p>
+  <p><strong>TraderJ 현재:</strong> 단일 RiskManager가 규칙 기반 체크 (ATR, 일일손실, 변동성캡)</p>
+
+  <h4>반영 방안: 리스크 등급별 포지션 사이즈 조정</h4>
+  <p>전체 구조를 바꾸지 않고, 기존 RiskManager의 <code>pre_validate()</code> 결과에 <strong>LLM 기반 2차 리스크 평가</strong>를 추가합니다.</p>
+  <pre>
+# engine/execution/risk_evaluator.py
+
+class RiskEvaluator:
+    """
+    기존 RiskManager가 PASS한 주문에 대해
+    3가지 관점으로 리스크를 재평가하고 사이즈를 조정.
+    """
+
+    async def evaluate(self, order: OrderRequest, context: dict) -> RiskAdjustment:
+        perspectives = await asyncio.gather(
+            self._aggressive_view(order, context),   # "기회 비용" 관점
+            self._conservative_view(order, context),  # "최대 손실" 관점
+            self._neutral_view(order, context),       # "균형" 관점
+        )
+
+        # 3개 관점의 권장 사이즈 비율 중위값 사용
+        size_ratios = [p.recommended_size_ratio for p in perspectives]
+        adjusted_ratio = sorted(size_ratios)[1]  # 중위값
+
+        return RiskAdjustment(
+            original_size=order.amount,
+            adjusted_size=order.amount * adjusted_ratio,
+            perspectives=perspectives,
+            reasoning=self._summarize(perspectives)
+        )
+  </pre>
+
+  <table>
+    <tr><th>관점</th><th>성향</th><th>예시 판단</th></tr>
+    <tr><td>Aggressive</td><td>수익 극대화</td><td>"추세 강하니 100% 사이즈 유지"</td></tr>
+    <tr><td>Conservative</td><td>손실 최소화</td><td>"변동성 상승 중, 50%로 축소"</td></tr>
+    <tr><td>Neutral</td><td>균형</td><td>"75% 사이즈 + 타이트한 SL"</td></tr>
+  </table>
+  <p><span class="tag tag-mid">구현 복잡도: 중</span> <span class="tag tag-info">예상 기간: 1~2주</span></p>
+</div>
+
+<!-- ===== 반영 사항 5 ===== -->
+<div class="card card-accent">
+  <div class="comparison-header">
+    <h3 style="margin:0">5. News Analyst &mdash; 실시간 뉴스 이벤트 감지</h3>
+    <span class="priority-badge p-medium">P2 - 보통</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> News Analyst가 매크로 이벤트, 내부자 거래 등을 모니터링</p>
+  <p><strong>TraderJ 현재:</strong> MacroSnapshot에 Fear&Greed, 펀딩비, BTC 도미넌스 등만 반영</p>
+
+  <h4>반영 방안: 뉴스 이벤트 긴급 게이트</h4>
+  <pre>
+# engine/strategy/news_gate.py
+
+class NewsGate:
+    """
+    주기적으로 크립토 뉴스를 스캔하여 긴급 이벤트 감지.
+    긴급도에 따라 트레이딩 루프에 개입.
+    """
+
+    CRITICAL_KEYWORDS = ["해킹", "거래소 파산", "규제 금지", "ETF 승인", "반감기"]
+
+    async def check(self) -> NewsGateResult:
+        news = await self.fetch_crypto_news()
+
+        # LLM으로 긴급도 분류
+        assessment = await self.llm_client.analyze(f"""
+            다음 뉴스가 BTC 가격에 미치는 영향을 평가하세요:
+            {news}
+
+            등급:
+            - CRITICAL (±5% 이상 영향 예상): 즉시 대응 필요
+            - WARNING (±2~5%): 사이즈 축소 권장
+            - NEUTRAL: 영향 미미
+        """)
+
+        return NewsGateResult(
+            level=assessment.level,
+            direction=assessment.direction,  # POSITIVE / NEGATIVE
+            summary=assessment.summary
+        )
+  </pre>
+
+  <h4>트레이딩 루프 통합</h4>
+  <pre>
+# CRITICAL + NEGATIVE → 즉시 포지션 축소/청산
+# CRITICAL + POSITIVE → 사이즈 확대 허용
+# WARNING → 신규 진입 보류, 기존 포지션 SL 타이트하게
+# NEUTRAL → 기존 로직 유지
+  </pre>
+  <p><span class="tag tag-mid">구현 복잡도: 중</span> <span class="tag tag-info">예상 기간: 1~2주</span></p>
+</div>
+
+<!-- ===== 반영 사항 6 ===== -->
+<div class="card card-accent">
+  <div class="comparison-header">
+    <h3 style="margin:0">6. Fundamentals Analyst &mdash; 온체인 펀더멘탈 분석</h3>
+    <span class="priority-badge p-medium">P2 - 보통</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 방식:</strong> 재무제표, 밸류에이션 분석 (주식용)</p>
+  <p><strong>TraderJ 적용:</strong> 암호화폐에 맞게 <strong>온체인 데이터</strong>로 변환</p>
+
+  <h4>반영 방안: 온체인 메트릭 스코어러</h4>
+  <pre>
+# engine/strategy/onchain_scorer.py
+
+class OnchainScorer:
+    """
+    Glassnode/CryptoQuant 등에서 온체인 데이터를 수집하여
+    펀더멘탈 점수를 산출.
+    """
+
+    METRICS = {
+        "exchange_netflow":    -1,  # 거래소 유출 → 상승 (보유 의지)
+        "whale_accumulation":  +1,  # 고래 축적 → 상승
+        "miner_selling":       -1,  # 채굴자 매도 → 하락 압력
+        "active_addresses":    +1,  # 활성 주소 증가 → 건전한 네트워크
+        "nvt_ratio":           -1,  # 높으면 과대평가
+        "sopr":                +1,  # >1 이면 수익실현, <1 이면 손절 (반전 신호)
+    }
+
+    async def score(self) -> float:
+        """종합 온체인 점수 (-1.0 ~ +1.0)"""
+        raw_data = await self.fetch_onchain_data()
+        weighted_sum = sum(
+            self.normalize(raw_data[metric]) * weight
+            for metric, weight in self.METRICS.items()
+        )
+        return tanh(weighted_sum)  # -1 ~ +1 클램핑
+  </pre>
+  <p><span class="tag tag-mid">구현 복잡도: 중~높음</span> <span class="tag tag-info">예상 기간: 2~3주</span> <span class="tag tag-low">데이터 소스 API 필요</span></p>
+</div>
+
+<!-- ===== 반영 사항 7 ===== -->
+<div class="card card-green">
+  <div class="comparison-header">
+    <h3 style="margin:0">7. 레짐 전환 시 포지션 처리 개선 (기존 논의 보강)</h3>
+    <span class="priority-badge p-critical">P0 - 최우선</span>
+  </div>
+  <br>
+  <p><strong>TradingAgents 참고점:</strong> 매 사이클 독립 판단, 포지션 잔류 문제 없음</p>
+  <p><strong>TraderJ 현재 문제:</strong> 전략 전환 시 기존 포지션이 새 전략과 충돌 (앞서 논의한 시나리오 B)</p>
+
+  <h4>강화된 방안 1+: 조건부 자동 청산 + LLM 판단</h4>
+  <p>이전에 논의한 "방안 1 (자동 청산)"에 TradingAgents의 <strong>다관점 평가</strong>를 결합합니다:</p>
+  <pre>
+# engine/strategy/regime_switch.py 확장
+
+async def handle_regime_transition(self, old_regime, new_regime, position):
+    if position is None:
+        # Case C: 포지션 없음 → 깔끔한 전환
+        return SwitchAction.CLEAN_SWITCH
+
+    # 기존 규칙 기반 판단
+    unrealized_pnl_pct = position.unrealized_pnl_pct
+
+    if unrealized_pnl_pct >= 0:
+        # 수익 중 → 즉시 청산 (이익 확보)
+        return SwitchAction.CLOSE_AND_SWITCH
+
+    elif unrealized_pnl_pct > -2.0:
+        # 소폭 손실 → 즉시 청산 (손실 제한)
+        return SwitchAction.CLOSE_AND_SWITCH
+
+    else:
+        # 큰 손실 중 → LLM에게 판단 위임
+        judgment = await self.llm_judge.evaluate(
+            f"""
+            레짐 전환: {old_regime} → {new_regime}
+            기존 포지션 미실현 손실: {unrealized_pnl_pct}%
+
+            선택지:
+            A) 즉시 시장가 청산 (손실 확정, 새 전략 시작)
+            B) SL을 타이트하게 조이고 대기 (반등 기회 + 제한된 추가 손실)
+            C) 현재 포지션 유지, 새 전략 진입 보류
+
+            현재 시장 상황과 새 레짐을 고려하여 최적 선택은?
+            """
+        )
+        return judgment.action
+  </pre>
+
+  <table>
+    <tr><th>상황</th><th>행동</th><th>근거</th></tr>
+    <tr><td>수익 중 (PnL &ge; 0%)</td><td>즉시 청산 + 전환</td><td>이익 확보, 새 전략 깔끔 시작</td></tr>
+    <tr><td>소폭 손실 (-2% ~ 0%)</td><td>즉시 청산 + 전환</td><td>손실 제한, 빠른 전환</td></tr>
+    <tr><td>큰 손실 (&lt; -2%)</td><td>LLM 판단 위임</td><td>상황별 최적 대응 (청산/SL조정/대기)</td></tr>
+  </table>
+  <p><span class="tag tag-mid">구현 복잡도: 중</span> <span class="tag tag-info">예상 기간: 1주</span></p>
+</div>
+
+<!-- ============================================== -->
+<hr class="section-divider">
+<h2 id="part4">Part 4. 구현 로드맵</h2>
+<!-- ============================================== -->
+
+<h3>4.1 단계별 구현 계획</h3>
+
+<div class="roadmap-item">
+  <div class="roadmap-phase phase-1">Phase 1<br>1~2주</div>
+  <div>
+    <strong>즉시 반영 (LLM 불필요, 규칙 기반 확장)</strong><br>
+    <span class="tag tag-high">#7</span> 레짐 전환 시 조건부 자동 청산 (규칙 기반 부분만 먼저)<br>
+    기존 <code>RegimeSwitchManager</code>에 수익/소폭손실 케이스 자동 청산 로직 추가
+  </div>
+</div>
+
+<div class="roadmap-item">
+  <div class="roadmap-phase phase-2">Phase 2<br>2~4주</div>
+  <div>
+    <strong>LLM 인프라 구축 + 첫 번째 LLM 기능</strong><br>
+    <span class="tag tag-high">#1</span> Sentiment Analyzer + <span class="tag tag-high">#5</span> News Gate<br>
+    LLM 클라이언트 모듈 구축 (OpenAI/Anthropic) → 감성분석 + 뉴스 게이트를 동시에 구현<br>
+    <em>이 단계에서 LLM 호출 비용/지연 최적화 패턴 확립</em>
+  </div>
+</div>
+
+<div class="roadmap-item">
+  <div class="roadmap-phase phase-3">Phase 3<br>4~6주</div>
+  <div>
+    <strong>시그널 교차 검증 + 리스크 다관점 평가</strong><br>
+    <span class="tag tag-high">#2</span> Bull/Bear Signal Validator + <span class="tag tag-high">#4</span> Risk Evaluator<br>
+    Phase 2의 LLM 인프라 위에 구축. BUY 시그널 전용 검증으로 시작, 점진적 확대.
+  </div>
+</div>
+
+<div class="roadmap-item">
+  <div class="roadmap-phase phase-4">Phase 4<br>6~10주</div>
+  <div>
+    <strong>고급 기능: 학습 시스템 + 온체인</strong><br>
+    <span class="tag tag-high">#3</span> Reflection Memory + <span class="tag tag-high">#6</span> Onchain Scorer<br>
+    벡터DB 또는 구조화 JSON 메모리 구축 → 회고 학습 시스템 완성<br>
+    온체인 데이터 API 연동 (Glassnode/CryptoQuant)
+  </div>
+</div>
+
+<h3>4.2 아키텍처 변경 영향도</h3>
+
+<table>
+  <tr>
+    <th>파일/모듈</th>
+    <th>변경 유형</th>
+    <th>영향받는 반영 사항</th>
+  </tr>
+  <tr>
+    <td><code>engine/strategy/signal.py</code></td>
+    <td>파이프라인 Step 7 확장 (sentiment_weight 추가)</td>
+    <td>#1, #6</td>
+  </tr>
+  <tr>
+    <td><code>engine/strategy/presets.py</code></td>
+    <td>프리셋에 sentiment_weight, onchain_weight 필드 추가</td>
+    <td>#1, #6</td>
+  </tr>
+  <tr>
+    <td><code>engine/loop/trading_loop.py</code></td>
+    <td>시그널 검증 단계 삽입, 뉴스 게이트 체크 추가</td>
+    <td>#2, #5</td>
+  </tr>
+  <tr>
+    <td><code>engine/strategy/regime_switch.py</code></td>
+    <td>전환 시 포지션 처리 로직 추가</td>
+    <td>#7</td>
+  </tr>
+  <tr>
+    <td><code>engine/execution/risk_manager.py</code></td>
+    <td>LLM 리스크 평가 레이어 추가</td>
+    <td>#4</td>
+  </tr>
+  <tr>
+    <td><code>engine/execution/position_manager.py</code></td>
+    <td>청산 시 Reflection 이벤트 발행</td>
+    <td>#3</td>
+  </tr>
+  <tr>
+    <td><code>engine/bootstrap.py</code></td>
+    <td>새 컴포넌트 DI 등록</td>
+    <td>전체</td>
+  </tr>
+  <tr>
+    <td><code>shared/events.py</code></td>
+    <td>SentimentUpdateEvent, NewsAlertEvent, ReflectionEvent 추가</td>
+    <td>#1, #3, #5</td>
+  </tr>
+  <tr>
+    <td style="color: var(--accent2)"><strong>신규 파일</strong></td>
+    <td colspan="2">
+      <code>engine/strategy/sentiment_analyzer.py</code> (#1)<br>
+      <code>engine/strategy/signal_validator.py</code> (#2)<br>
+      <code>engine/strategy/reflection.py</code> (#3)<br>
+      <code>engine/execution/risk_evaluator.py</code> (#4)<br>
+      <code>engine/strategy/news_gate.py</code> (#5)<br>
+      <code>engine/strategy/onchain_scorer.py</code> (#6)<br>
+      <code>engine/llm/client.py</code> (공통 LLM 클라이언트)
+    </td>
+  </tr>
+</table>
+
+<h3>4.3 비용 추정 (LLM API)</h3>
+
+<div class="card card-warn">
+  <table>
+    <tr><th>기능</th><th>호출 빈도</th><th>예상 토큰/회</th><th>월 예상 비용 (GPT-4o 기준)</th></tr>
+    <tr><td>#1 Sentiment</td><td>6회/일</td><td>~2,000</td><td>~$3.6</td></tr>
+    <tr><td>#2 Signal Validator</td><td>~5회/일 (BUY만)</td><td>~3,000</td><td>~$4.5</td></tr>
+    <tr><td>#3 Reflection</td><td>~2회/일 (청산 시)</td><td>~2,000</td><td>~$1.2</td></tr>
+    <tr><td>#4 Risk Evaluator</td><td>~5회/일</td><td>~2,000</td><td>~$3.0</td></tr>
+    <tr><td>#5 News Gate</td><td>6회/일</td><td>~1,500</td><td>~$2.7</td></tr>
+    <tr><td>#7 LLM Judge (큰 손실)</td><td>~1회/주</td><td>~1,500</td><td>~$0.2</td></tr>
+    <tr><th colspan="3">합계</th><th>~$15/월</th></tr>
+  </table>
+  <p style="color: var(--text-muted); font-size: 0.85rem;">* Claude Haiku 사용 시 약 1/5 수준, 로컬 Ollama 사용 시 0원 (품질 트레이드오프)</p>
+</div>
+
+<hr class="section-divider">
+
+<div class="summary-box">
+  <h3 style="color: var(--accent); margin-top:0">최종 요약</h3>
+  <p>TradingAgents의 가장 가치 있는 아이디어는 <strong>"다관점 토론을 통한 의사결정"</strong>과 <strong>"경험으로부터의 학습"</strong>입니다. TraderJ는 이미 훌륭한 규칙 기반 엔진을 갖추고 있으므로, 이 엔진을 대체하는 것이 아니라 <strong>LLM을 "조언자/검증자"로 얹는 하이브리드 구조</strong>가 최적입니다.</p>
+  <p>비유하자면: TraderJ의 기술적 분석은 <strong>속도계와 내비게이션</strong>(정확한 수치 기반 판단)이고, TradingAgents에서 가져올 LLM 기능은 <strong>경험 많은 조수석 운전자</strong>(상황 맥락 판단, 위험 경고, 과거 경험 조언)입니다. 둘 다 있을 때 가장 안전하게 운전할 수 있습니다.</p>
+</div>
+
+<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 3rem;">
+  Generated by TraderJ Analysis System | 2026-03-21
+</p>
+
+</body>
+</html>

@@ -268,24 +268,24 @@ class TestOHLCVCollector:
 
 class TestMacroCollector:
     @pytest.mark.asyncio
-    async def test_collect_defaults(self):
+    async def test_collect_disabled(self):
         store = FakeDataStore()
-        collector = MacroCollector(data_store=store)
+        collector = MacroCollector(data_store=store, enabled=False)
         snapshot = await collector.collect()
 
-        assert snapshot is not None
-        assert snapshot.fear_greed == 50.0
-        assert len(store.macro_snapshots) == 1
+        assert snapshot is None
+        assert len(store.macro_snapshots) == 0
 
     @pytest.mark.asyncio
-    async def test_market_score_neutral(self):
+    async def test_collect_fetches_data(self):
         store = FakeDataStore()
         collector = MacroCollector(data_store=store)
         snapshot = await collector.collect()
 
         assert snapshot is not None
-        # All defaults → score should be ~0
-        assert -0.5 <= snapshot.market_score <= 0.5
+        assert 0 <= snapshot.fear_greed <= 100
+        assert -1.0 <= snapshot.market_score <= 1.0
+        assert len(store.macro_snapshots) == 1
 
     def test_calculate_market_score_extremes(self):
         # Extreme greed + high funding + low dominance
