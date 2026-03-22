@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -44,36 +46,22 @@ async def close_position(
     req: PositionCloseRequest,
     loops=Depends(get_loops),
     exchange=Depends(get_exchange),
-    store=Depends(get_store),
 ):
-    # Find the loop for this strategy
     loop = _get_loop_or_404(loops, req.strategy_id)
-
-    # Check for open position
-    position = loop._pos_mgr._positions.get(req.strategy_id)
-    if position is None:
+    pos = loop._position_mgr.get_position(loop._strategy_id)
+    if pos is None:
         raise HTTPException(status_code=404, detail=f"No open position for {req.strategy_id}")
 
-    amount = float(position.amount)
-    symbol = position.symbol
+    amount = float(pos.amount)
 
-    # Execute market sell
     try:
-        ticker = await exchange.fetch_ticker(symbol)
-        sell_price = float(ticker.get("last", 0))
-
-        await loop._order_mgr.execute_sell(
-            strategy_id=req.strategy_id,
-            symbol=symbol,
-            amount=amount,
-            reason="manual_close",
-        )
+        # Use the same close logic as regime switch
+        await loop._execute_regime_close(pos)
 
         return {
             "success": True,
             "message": "Position closed at market price",
             "sold_amount": str(amount),
-            "sold_price": str(sell_price),
         }
     except Exception as e:
         logger.exception("Failed to close position for %s", req.strategy_id)
@@ -86,12 +74,12 @@ async def update_stop_loss(
     loops=Depends(get_loops),
 ):
     loop = _get_loop_or_404(loops, req.strategy_id)
-    position = loop._pos_mgr._positions.get(req.strategy_id)
-    if position is None:
+    pos = loop._position_mgr.get_position(loop._strategy_id)
+    if pos is None:
         raise HTTPException(status_code=404, detail=f"No open position for {req.strategy_id}")
 
-    old_sl = str(position.stop_loss) if position.stop_loss else None
-    loop._pos_mgr.set_stop_loss(req.strategy_id, req.stop_loss)
+    old_sl = str(pos.stop_loss) if pos.stop_loss else None
+    await loop._position_mgr.set_stop_loss(loop._strategy_id, Decimal(str(req.stop_loss)))
 
     return {
         "success": True,
@@ -107,12 +95,12 @@ async def update_take_profit(
     loops=Depends(get_loops),
 ):
     loop = _get_loop_or_404(loops, req.strategy_id)
-    position = loop._pos_mgr._positions.get(req.strategy_id)
-    if position is None:
+    pos = loop._position_mgr.get_position(loop._strategy_id)
+    if pos is None:
         raise HTTPException(status_code=404, detail=f"No open position for {req.strategy_id}")
 
-    old_tp = str(position.take_profit) if hasattr(position, "take_profit") and position.take_profit else None
-    loop._pos_mgr.set_take_profit(req.strategy_id, req.take_profit)
+    old_tp = str(pos.take_profit) if hasattr(pos, "take_profit") and pos.take_profit else None
+    await loop._position_mgr.set_take_profit(loop._strategy_id, Decimal(str(req.take_profit)))
 
     return {
         "success": True,
@@ -127,7 +115,6 @@ async def switch_strategy(
     req: StrategySwitchRequest,
     loops=Depends(get_loops),
 ):
-    # Apply to first (or only) active loop
     if not loops:
         raise HTTPException(status_code=404, detail="No active trading loops")
 
@@ -137,12 +124,10 @@ async def switch_strategy(
 
     old_preset = loop._regime_mgr.current_preset or sid
 
-    # Get the preset
     preset = loop._regime_mgr.get_preset(req.strategy_id)
     if preset is None:
         raise HTTPException(status_code=404, detail=f"Unknown preset: {req.strategy_id}")
 
-    # Apply preset
     loop._signal_gen.apply_preset(preset)
     loop._regime_mgr._current_preset = req.strategy_id
 
@@ -158,11 +143,10 @@ async def switch_strategy(
 
 
 def _get_loop_or_404(loops: dict, strategy_id: str):
-    """Get trading loop for strategy_id or raise 404."""
+    """Get trading loop for strategy_id, falling back to first loop in single-strategy mode."""
     loop = loops.get(strategy_id)
+    if loop is None and len(loops) == 1:
+        return next(iter(loops.values()))
     if loop is None:
-        # Try first loop if only one exists (single-strategy mode)
-        if len(loops) == 1:
-            return next(iter(loops.values()))
         raise HTTPException(status_code=404, detail=f"No loop for strategy {strategy_id}")
     return loop

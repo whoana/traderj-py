@@ -20,13 +20,13 @@ async def engine_status(loops=Depends(get_loops)):
     regime_info = None
 
     for sid, loop in loops.items():
-        has_position = bool(loop._pos_mgr._positions)
+        has_position = bool(loop._position_mgr._positions)
         strategies.append({
             "strategy_id": sid,
-            "preset": getattr(loop, "_current_preset_id", sid),
-            "state": loop._state_machine.state.value if hasattr(loop._state_machine, "state") else "unknown",
-            "last_tick_at": loop._last_tick_time.isoformat() if hasattr(loop, "_last_tick_time") and loop._last_tick_time else None,
-            "tick_count": getattr(loop, "_tick_count", 0),
+            "preset": loop._regime_mgr.current_preset or sid,
+            "state": loop._state.state.value if hasattr(loop._state, "state") else "unknown",
+            "last_tick_at": None,
+            "tick_count": loop._tick_count,
             "has_open_position": has_position,
             "running": loop._running,
         })

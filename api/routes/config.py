@@ -27,13 +27,13 @@ async def get_config(loops=Depends(get_loops)):
 
         current_preset = {
             "id": loop._regime_mgr.current_preset or loop._strategy_id,
-            "scoring_mode": sig._scoring_mode.value if hasattr(sig._scoring_mode, "value") else str(sig._scoring_mode),
-            "entry_mode": sig._entry_mode.value if hasattr(sig._entry_mode, "value") else str(sig._entry_mode),
-            "buy_threshold": sig._buy_threshold,
-            "sell_threshold": sig._sell_threshold,
-            "tf_weights": sig._tf_weights,
-            "use_daily_gate": sig._use_daily_gate,
-            "macro_weight": sig._macro_weight,
+            "scoring_mode": sig.scoring_mode.value if hasattr(sig.scoring_mode, "value") else str(sig.scoring_mode),
+            "entry_mode": sig.entry_mode.value if hasattr(sig.entry_mode, "value") else str(sig.entry_mode),
+            "buy_threshold": sig.buy_threshold,
+            "sell_threshold": sig.sell_threshold,
+            "tf_weights": sig.tf_weights,
+            "use_daily_gate": sig.use_daily_gate,
+            "macro_weight": sig.macro_weight,
         }
 
         mgr = loop._regime_mgr
