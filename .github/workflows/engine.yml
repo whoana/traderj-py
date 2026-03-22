@@ -17,7 +17,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install poetry ruff
+          pip install poetry ruff pytest pytest-asyncio pytest-cov
           cd shared && pip install -e .
           cd ../engine && poetry install
 
@@ -25,11 +25,12 @@ jobs:
         run: ruff check shared/ engine/
 
       - name: Unit tests
-        run: python -m pytest engine/tests/unit/ -v --cov=engine --cov-report=xml
+        run: |
+          cd engine && poetry run pytest tests/unit/ -v --cov=engine --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          file: coverage.xml
+          file: engine/coverage.xml
           flags: engine
