@@ -254,7 +254,11 @@ export default function DashboardPage() {
         {/* Regime */}
         <Card className="p-2.5 sm:p-4">
           <p className="text-[10px] sm:text-xs text-text-muted">Regime</p>
-          <p className="mt-0.5 sm:mt-1 font-mono text-xs sm:text-sm font-medium text-text-primary truncate">
+          <p className={`mt-0.5 sm:mt-1 font-mono text-xs sm:text-sm font-medium truncate ${
+            engine?.regime?.current?.startsWith("bull_trend") ? "text-up" :
+            engine?.regime?.current?.startsWith("bear_trend") ? "text-down" :
+            "text-text-primary"
+          }`}>
             {engine?.regime?.current ?? "--"}
           </p>
           <p className="text-[10px] sm:text-xs text-text-muted">

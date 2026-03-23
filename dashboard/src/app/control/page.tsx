@@ -18,7 +18,7 @@ interface EngineStatus {
   }[];
 }
 
-const PRESETS = ["STR-001", "STR-002", "STR-003", "STR-004", "STR-005", "STR-006"];
+const PRESETS = ["STR-001", "STR-002", "STR-003", "STR-004", "STR-005", "STR-006", "STR-007", "STR-008"];
 
 export default function ControlPage() {
   const [engine, setEngine] = useState<EngineStatus | null>(null);
