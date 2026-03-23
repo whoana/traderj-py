@@ -11,6 +11,7 @@ traderj-shared = {path = "../shared", develop = true}
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 asyncpg = "*"
+aiosqlite = "*"
 prometheus-client = "*"
 pydantic-settings = "*"
 httpx = "*"
