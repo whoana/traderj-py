@@ -20,6 +20,17 @@ interface EngineStatus {
 
 const PRESETS = ["STR-001", "STR-002", "STR-003", "STR-004", "STR-005", "STR-006", "STR-007", "STR-008"];
 
+const PRESET_INFO: Record<string, { name: string; desc: string; regime: string }> = {
+  "STR-001": { name: "Conservative Trend (4h)", desc: "4h 기준 보수적 추세추종. 1h/4h/1d 멀티TF. 매크로 10%.", regime: "Bull (Low Vol)" },
+  "STR-002": { name: "Aggressive Trend (1h)", desc: "1h 기준 공격적 추세추종. 낮은 진입 기준(0.05).", regime: "Bull (High Vol)" },
+  "STR-003": { name: "Hybrid Reversal (4h/1d)", desc: "4h/1d 하이브리드 반전. 그리드서치 최고 성과. 매크로 10%.", regime: "Ranging (High Vol)" },
+  "STR-004": { name: "Majority Vote Trend", desc: "다수결 진입 추세추종. 1h/4h 기반. 매크로 미반영.", regime: "Manual" },
+  "STR-005": { name: "Low-Frequency Hybrid", desc: "4h/1d 저빈도 하이브리드. 높은 진입 기준(0.12). 신중한 매매.", regime: "Ranging (Low Vol)" },
+  "STR-006": { name: "Scalper (1h/4h)", desc: "1h/4h 단타. 낮은 기준(0.05). 모멘텀 가중치 높음.", regime: "Manual" },
+  "STR-007": { name: "Bear Defensive (1d)", desc: "약세장 방어. 극단적 과매도 반전만 매수(0.18). 빠른 손절.", regime: "Bear (High Vol)" },
+  "STR-008": { name: "Bear Cautious Reversal", desc: "약세장 신중한 반전. STR-007보다 완화. 매크로 15%.", regime: "Bear (Low Vol)" },
+};
+
 export default function ControlPage() {
   const [engine, setEngine] = useState<EngineStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,15 +181,19 @@ export default function ControlPage() {
           {PRESETS.map((preset) => (
             <button
               key={preset}
-              onClick={() =>
+              onClick={() => {
+                const info = PRESET_INFO[preset];
+                const desc = info
+                  ? `${info.name}\n${info.desc}\nRegime: ${info.regime}\n\nSwitch to ${preset}?`
+                  : `Switch to strategy preset ${preset}?`;
                 confirmAction(
                   `switch-${preset}`,
                   "Switch Strategy",
-                  `Switch to strategy preset ${preset}?`,
+                  desc,
                   "/engine/strategy/switch",
                   { strategy_id: preset },
-                )
-              }
+                );
+              }}
               disabled={actionLoading !== null || engine?.strategies?.[0]?.preset === preset}
               className={`rounded-md px-3 py-1.5 text-sm font-mono font-medium transition-colors ${
                 engine?.strategies?.[0]?.preset === preset

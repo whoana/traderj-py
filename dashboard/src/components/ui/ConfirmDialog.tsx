@@ -47,7 +47,7 @@ export function ConfirmDialog({
     >
       <div className="p-6">
         <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-        <p className="mt-2 text-sm text-text-secondary">{description}</p>
+        <p className="mt-2 whitespace-pre-line text-sm text-text-secondary">{description}</p>
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onCancel}
