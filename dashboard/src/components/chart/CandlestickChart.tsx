@@ -33,10 +33,11 @@ export default function CandlestickChart() {
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [tf, setTf] = useState<string>("4h");
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
   const fetchAndRender = useCallback(async () => {
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const data = await api.get<CandleRaw[]>(
         `/engine/candles/BTC-KRW/${tf}?limit=200`,
@@ -58,7 +59,10 @@ export default function CandlestickChart() {
 
       candleSeriesRef.current.setData(candles);
       volumeSeriesRef.current.setData(volumes);
-      chartRef.current.timeScale().fitContent();
+      if (!initialLoadDone.current) {
+        chartRef.current.timeScale().fitContent();
+        initialLoadDone.current = true;
+      }
     } catch {
       // silently fail — chart stays empty
     } finally {
@@ -157,6 +161,8 @@ export default function CandlestickChart() {
 
   useEffect(() => {
     fetchAndRender();
+    const interval = setInterval(fetchAndRender, 60_000);
+    return () => clearInterval(interval);
   }, [fetchAndRender]);
 
   return (
@@ -165,7 +171,7 @@ export default function CandlestickChart() {
         {TIMEFRAMES.map((t) => (
           <button
             key={t}
-            onClick={() => setTf(t)}
+            onClick={() => { initialLoadDone.current = false; setTf(t); }}
             className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
               tf === t
                 ? "bg-accent text-white"
