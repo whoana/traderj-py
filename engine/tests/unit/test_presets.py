@@ -118,9 +118,9 @@ class TestSpecificPresets:
     def test_str007_bear_defensive(self):
         """STR-007 should have strict entry and fast exit for bear markets."""
         assert STR_007.scoring_mode == ScoringMode.HYBRID
-        assert STR_007.buy_threshold >= 0.20
+        assert STR_007.buy_threshold >= 0.15
         assert STR_007.sell_threshold >= -0.10
-        assert STR_007.use_daily_gate is True
+        assert STR_007.use_daily_gate is False  # EMA gate blocks ALL buys in bear
         assert STR_007.macro_weight >= 0.15
         assert "1d" in STR_007.tf_weights
 

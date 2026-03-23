@@ -142,6 +142,7 @@ STR_006 = StrategyPreset(
 # STR-007: Bear Defensive (bear market, high volatility)
 # Very strict entry: only buy on extreme oversold reversals.
 # Fast exit to minimize drawdown.
+# daily_gate=False: EMA gate blocks ALL buys in bear market (self-contradictory).
 STR_007 = StrategyPreset(
     name="Bear Defensive (1d)",
     strategy_id="STR-007",
@@ -149,10 +150,10 @@ STR_007 = StrategyPreset(
     entry_mode=EntryMode.WEIGHTED,
     score_weights=HYBRID_WEIGHTS,
     tf_weights={"4h": 0.3, "1d": 0.7},
-    buy_threshold=0.20,
-    sell_threshold=-0.05,
+    buy_threshold=0.18,
+    sell_threshold=-0.03,
     majority_min=2,
-    use_daily_gate=True,
+    use_daily_gate=False,
     macro_weight=0.20,
 )
 
