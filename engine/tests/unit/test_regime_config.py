@@ -5,16 +5,20 @@ from __future__ import annotations
 from engine.strategy.dca import DCAConfig
 from engine.strategy.grid import GridConfig, GridType
 from engine.strategy.regime_config import (
+    DCA_BEAR_TREND_HIGH_VOL,
+    DCA_BEAR_TREND_LOW_VOL,
+    DCA_BULL_TREND_HIGH_VOL,
+    DCA_BULL_TREND_LOW_VOL,
     DCA_RANGING_HIGH_VOL,
     DCA_RANGING_LOW_VOL,
     DCA_REGIME_MAP,
-    DCA_TRENDING_HIGH_VOL,
-    DCA_TRENDING_LOW_VOL,
+    GRID_BEAR_TREND_HIGH_VOL,
+    GRID_BEAR_TREND_LOW_VOL,
+    GRID_BULL_TREND_HIGH_VOL,
+    GRID_BULL_TREND_LOW_VOL,
     GRID_RANGING_HIGH_VOL,
     GRID_RANGING_LOW_VOL,
     GRID_REGIME_MAP,
-    GRID_TRENDING_HIGH_VOL,
-    GRID_TRENDING_LOW_VOL,
     build_grid_config,
 )
 from shared.enums import RegimeType
@@ -24,23 +28,44 @@ from shared.enums import RegimeType
 
 class TestDCARegimePresets:
     def test_all_regimes_covered(self):
-        """DCA_REGIME_MAP should cover all 4 regime types."""
+        """DCA_REGIME_MAP should cover all 6 regime types."""
         for rt in RegimeType:
             assert rt in DCA_REGIME_MAP, f"Missing DCA preset for {rt}"
 
-    def test_trending_high_vol_increases_buy(self):
-        """Trending high vol should increase buy amount and frequency."""
+    def test_bull_trend_high_vol_increases_buy(self):
+        """Bull trend high vol should increase buy amount and frequency."""
         base = DCAConfig()
-        preset = DCA_TRENDING_HIGH_VOL.config
+        preset = DCA_BULL_TREND_HIGH_VOL.config
         assert preset.base_buy_krw > base.base_buy_krw
         assert preset.interval_hours < base.interval_hours
 
-    def test_trending_low_vol_moderate_increase(self):
-        """Trending low vol should moderately increase buy amount."""
+    def test_bull_trend_low_vol_moderate_increase(self):
+        """Bull trend low vol should moderately increase buy amount."""
         base = DCAConfig()
-        preset = DCA_TRENDING_LOW_VOL.config
+        preset = DCA_BULL_TREND_LOW_VOL.config
         assert preset.base_buy_krw > base.base_buy_krw
         assert preset.interval_hours < base.interval_hours
+
+    def test_bear_trend_high_vol_drastically_reduces(self):
+        """Bear trend high vol should drastically reduce buy amount."""
+        base = DCAConfig()
+        preset = DCA_BEAR_TREND_HIGH_VOL.config
+        assert preset.base_buy_krw < base.base_buy_krw
+        assert preset.interval_hours > base.interval_hours
+        assert preset.max_position_pct <= 0.15
+
+    def test_bear_trend_low_vol_reduces(self):
+        """Bear trend low vol should reduce buy amount."""
+        base = DCAConfig()
+        preset = DCA_BEAR_TREND_LOW_VOL.config
+        assert preset.base_buy_krw < base.base_buy_krw
+        assert preset.interval_hours > base.interval_hours
+        assert preset.max_position_pct <= 0.25
+
+    def test_bear_buys_less_than_bull(self):
+        """Bear DCA amounts should be smaller than bull."""
+        assert DCA_BEAR_TREND_HIGH_VOL.config.base_buy_krw < DCA_BULL_TREND_HIGH_VOL.config.base_buy_krw
+        assert DCA_BEAR_TREND_LOW_VOL.config.base_buy_krw < DCA_BULL_TREND_LOW_VOL.config.base_buy_krw
 
     def test_ranging_high_vol_reduces_buy(self):
         """Ranging high vol should reduce buy amount and increase interval."""
@@ -56,14 +81,14 @@ class TestDCARegimePresets:
         assert preset.base_buy_krw < base.base_buy_krw
         assert preset.interval_hours > base.interval_hours
 
-    def test_trending_has_higher_position_limit(self):
-        """Trending presets should allow higher position than ranging."""
-        assert DCA_TRENDING_HIGH_VOL.config.max_position_pct > DCA_RANGING_HIGH_VOL.config.max_position_pct
-        assert DCA_TRENDING_LOW_VOL.config.max_position_pct > DCA_RANGING_LOW_VOL.config.max_position_pct
+    def test_bull_has_higher_position_limit_than_ranging(self):
+        """Bull trend presets should allow higher position than ranging."""
+        assert DCA_BULL_TREND_HIGH_VOL.config.max_position_pct > DCA_RANGING_HIGH_VOL.config.max_position_pct
+        assert DCA_BULL_TREND_LOW_VOL.config.max_position_pct > DCA_RANGING_LOW_VOL.config.max_position_pct
 
     def test_high_vol_has_wider_volatility_cap(self):
         """High vol presets should have wider volatility cap."""
-        assert DCA_TRENDING_HIGH_VOL.config.volatility_cap_pct >= DCA_TRENDING_LOW_VOL.config.volatility_cap_pct
+        assert DCA_BULL_TREND_HIGH_VOL.config.volatility_cap_pct >= DCA_BULL_TREND_LOW_VOL.config.volatility_cap_pct
         assert DCA_RANGING_HIGH_VOL.config.volatility_cap_pct > DCA_RANGING_LOW_VOL.config.volatility_cap_pct
 
     def test_all_presets_use_rsi_scaling(self):
@@ -82,14 +107,19 @@ class TestDCARegimePresets:
 
 class TestGridRegimePresets:
     def test_all_regimes_covered(self):
-        """GRID_REGIME_MAP should cover all 4 regime types."""
+        """GRID_REGIME_MAP should cover all 6 regime types."""
         for rt in RegimeType:
             assert rt in GRID_REGIME_MAP, f"Missing Grid preset for {rt}"
 
-    def test_trending_grids_disabled(self):
-        """Grid should be disabled for trending regimes."""
-        assert GRID_TRENDING_HIGH_VOL.enabled is False
-        assert GRID_TRENDING_LOW_VOL.enabled is False
+    def test_bull_trend_grids_disabled(self):
+        """Grid should be disabled for bull trend regimes."""
+        assert GRID_BULL_TREND_HIGH_VOL.enabled is False
+        assert GRID_BULL_TREND_LOW_VOL.enabled is False
+
+    def test_bear_trend_grids_disabled(self):
+        """Grid should be disabled for bear trend regimes."""
+        assert GRID_BEAR_TREND_HIGH_VOL.enabled is False
+        assert GRID_BEAR_TREND_LOW_VOL.enabled is False
 
     def test_ranging_grids_enabled(self):
         """Grid should be enabled for ranging regimes."""
@@ -114,7 +144,12 @@ class TestGridRegimePresets:
 
     def test_disabled_presets_have_zero_values(self):
         """Disabled grid presets should have zero grid_count and investment."""
-        for preset in [GRID_TRENDING_HIGH_VOL, GRID_TRENDING_LOW_VOL]:
+        for preset in [
+            GRID_BULL_TREND_HIGH_VOL,
+            GRID_BULL_TREND_LOW_VOL,
+            GRID_BEAR_TREND_HIGH_VOL,
+            GRID_BEAR_TREND_LOW_VOL,
+        ]:
             assert preset.grid_count == 0
             assert preset.investment_per_grid == 0
 
@@ -130,8 +165,13 @@ class TestGridRegimePresets:
 class TestBuildGridConfig:
     def test_returns_none_when_disabled(self):
         """build_grid_config should return None for disabled presets."""
-        result = build_grid_config(GRID_TRENDING_HIGH_VOL, 90_000_000)
+        result = build_grid_config(GRID_BULL_TREND_HIGH_VOL, 90_000_000)
         assert result is None
+
+    def test_returns_none_for_bear_trend(self):
+        """build_grid_config should return None for bear trend presets."""
+        assert build_grid_config(GRID_BEAR_TREND_HIGH_VOL, 90_000_000) is None
+        assert build_grid_config(GRID_BEAR_TREND_LOW_VOL, 90_000_000) is None
 
     def test_returns_none_for_zero_price(self):
         """build_grid_config should return None for zero/negative price."""

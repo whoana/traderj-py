@@ -1,7 +1,8 @@
 """Strategy presets — predefined configurations for SignalGenerator.
 
-7 presets: default + STR-001 through STR-006.
+9 presets: default + STR-001 through STR-008.
 Each defines scoring mode, entry mode, TF weights, and thresholds.
+STR-007/008 are bear market defensive presets with strict entry conditions.
 """
 
 from __future__ import annotations
@@ -138,6 +139,40 @@ STR_006 = StrategyPreset(
 )
 
 
+# STR-007: Bear Defensive (bear market, high volatility)
+# Very strict entry: only buy on extreme oversold reversals.
+# Fast exit to minimize drawdown.
+STR_007 = StrategyPreset(
+    name="Bear Defensive (1d)",
+    strategy_id="STR-007",
+    scoring_mode=ScoringMode.HYBRID,
+    entry_mode=EntryMode.WEIGHTED,
+    score_weights=HYBRID_WEIGHTS,
+    tf_weights={"4h": 0.3, "1d": 0.7},
+    buy_threshold=0.20,
+    sell_threshold=-0.05,
+    majority_min=2,
+    use_daily_gate=True,
+    macro_weight=0.20,
+)
+
+# STR-008: Bear Cautious Reversal (bear market, low volatility)
+# Slightly less strict than STR-007. No daily gate (would permanently block).
+STR_008 = StrategyPreset(
+    name="Bear Cautious Reversal (4h/1d)",
+    strategy_id="STR-008",
+    scoring_mode=ScoringMode.HYBRID,
+    entry_mode=EntryMode.WEIGHTED,
+    score_weights=HYBRID_WEIGHTS,
+    tf_weights={"4h": 0.4, "1d": 0.6},
+    buy_threshold=0.15,
+    sell_threshold=-0.08,
+    majority_min=2,
+    use_daily_gate=False,
+    macro_weight=0.15,
+)
+
+
 STRATEGY_PRESETS: dict[str, StrategyPreset] = {
     "default": DEFAULT_PRESET,
     "STR-001": STR_001,
@@ -146,4 +181,6 @@ STRATEGY_PRESETS: dict[str, StrategyPreset] = {
     "STR-004": STR_004,
     "STR-005": STR_005,
     "STR-006": STR_006,
+    "STR-007": STR_007,
+    "STR-008": STR_008,
 }

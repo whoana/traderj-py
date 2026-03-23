@@ -59,8 +59,10 @@ class Timeframe(StrEnum):
 
 
 class RegimeType(StrEnum):
-    TRENDING_HIGH_VOL = "trending_high_vol"
-    TRENDING_LOW_VOL = "trending_low_vol"
+    BULL_TREND_HIGH_VOL = "bull_trend_high_vol"
+    BULL_TREND_LOW_VOL = "bull_trend_low_vol"
+    BEAR_TREND_HIGH_VOL = "bear_trend_high_vol"
+    BEAR_TREND_LOW_VOL = "bear_trend_low_vol"
     RANGING_HIGH_VOL = "ranging_high_vol"
     RANGING_LOW_VOL = "ranging_low_vol"
 

@@ -325,7 +325,7 @@ class TestReconfigureDCAGrid:
         from shared.enums import RegimeType
 
         regime_mgr = RegimeSwitchManager()
-        regime_mgr._current_regime = RegimeType.TRENDING_HIGH_VOL
+        regime_mgr._current_regime = RegimeType.BULL_TREND_HIGH_VOL
 
         loop = TradingLoop(
             strategy_id="STR-001",
@@ -342,7 +342,7 @@ class TestReconfigureDCAGrid:
             regime_switch_manager=regime_mgr,
         )
 
-        loop._reconfigure_dca_grid(RegimeType.TRENDING_HIGH_VOL, 90_000_000.0)
+        loop._reconfigure_dca_grid(RegimeType.BULL_TREND_HIGH_VOL, 90_000_000.0)
 
         assert loop._dca_engine is not None
         assert loop._dca_engine.config.base_buy_krw == 150_000
@@ -403,7 +403,7 @@ class TestReconfigureDCAGrid:
         assert loop._grid_engine.config.num_grids == 12
 
         # Then: trending → grid deactivated
-        loop._reconfigure_dca_grid(RegimeType.TRENDING_HIGH_VOL, 90_000_000.0)
+        loop._reconfigure_dca_grid(RegimeType.BULL_TREND_HIGH_VOL, 90_000_000.0)
         assert loop._grid_engine is None
         assert loop._dca_engine is not None
         assert loop._dca_engine.config.base_buy_krw == 150_000
@@ -432,7 +432,7 @@ class TestReconfigureDCAGrid:
         )
 
         # Setup initial DCA with some history
-        loop._reconfigure_dca_grid(RegimeType.TRENDING_HIGH_VOL, 90_000_000.0)
+        loop._reconfigure_dca_grid(RegimeType.BULL_TREND_HIGH_VOL, 90_000_000.0)
         buy_time = datetime(2026, 3, 8, 12, 0, tzinfo=UTC)
         loop._dca_engine.record_buy(150_000, now=buy_time)
         assert loop._dca_engine.buy_count == 1
@@ -462,7 +462,7 @@ class TestReconfigureDCAGrid:
         )
 
         # Should not raise
-        loop._reconfigure_dca_grid(RegimeType.TRENDING_HIGH_VOL, 90_000_000.0)
+        loop._reconfigure_dca_grid(RegimeType.BULL_TREND_HIGH_VOL, 90_000_000.0)
         assert loop._dca_engine is None
         assert loop._grid_engine is None
 

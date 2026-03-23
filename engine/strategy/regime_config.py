@@ -1,7 +1,8 @@
 """Regime-adaptive configuration for DCA and Grid strategies.
 
-Maps market regimes to optimized DCA/Grid parameters:
-  - TRENDING: DCA increases buy frequency + amount, Grid pauses
+Maps 6 market regimes to optimized DCA/Grid parameters:
+  - BULL_TREND: DCA increases buy frequency + amount, Grid pauses
+  - BEAR_TREND: DCA drastically reduces amount + strict RSI filter, Grid pauses
   - RANGING: Grid activates with tighter grids, DCA reduces frequency
   - HIGH_VOL: Wider grids, smaller DCA amounts, stricter volatility caps
   - LOW_VOL: Tighter grids, normal DCA amounts
@@ -40,11 +41,11 @@ class GridRegimePreset:
 
 # ── DCA Regime Presets ──────────────────────────────────────────
 
-DCA_TRENDING_HIGH_VOL = DCARegimePreset(
-    name="DCA Trending High Vol",
-    regime=RegimeType.TRENDING_HIGH_VOL,
+DCA_BULL_TREND_HIGH_VOL = DCARegimePreset(
+    name="DCA Bull Trend High Vol",
+    regime=RegimeType.BULL_TREND_HIGH_VOL,
     config=DCAConfig(
-        base_buy_krw=150_000,       # 추세장: 금액 증가 (1.5x)
+        base_buy_krw=150_000,       # 상승추세: 금액 증가 (1.5x)
         interval_hours=12,          # 더 자주 매수 (12h)
         use_rsi_scaling=True,
         rsi_oversold=30.0,
@@ -57,9 +58,9 @@ DCA_TRENDING_HIGH_VOL = DCARegimePreset(
     ),
 )
 
-DCA_TRENDING_LOW_VOL = DCARegimePreset(
-    name="DCA Trending Low Vol",
-    regime=RegimeType.TRENDING_LOW_VOL,
+DCA_BULL_TREND_LOW_VOL = DCARegimePreset(
+    name="DCA Bull Trend Low Vol",
+    regime=RegimeType.BULL_TREND_LOW_VOL,
     config=DCAConfig(
         base_buy_krw=120_000,       # 약간 증가 (1.2x)
         interval_hours=18,          # 보수적으로 자주
@@ -71,6 +72,40 @@ DCA_TRENDING_LOW_VOL = DCARegimePreset(
         rsi_scale_down=0.5,
         max_position_pct=0.55,
         volatility_cap_pct=0.08,
+    ),
+)
+
+DCA_BEAR_TREND_HIGH_VOL = DCARegimePreset(
+    name="DCA Bear Trend High Vol",
+    regime=RegimeType.BEAR_TREND_HIGH_VOL,
+    config=DCAConfig(
+        base_buy_krw=30_000,        # 하락장+고변동: 금액 대폭 축소 (0.3x)
+        interval_hours=72,          # 빈도 대폭 줄임 (3일)
+        use_rsi_scaling=True,
+        rsi_oversold=22.0,          # 극단적 과매도에서만 매수
+        rsi_overbought=60.0,        # 과매수 기준 강화
+        rsi_skip=70.0,
+        rsi_scale_up=1.0,           # 스케일링 최소화
+        rsi_scale_down=0.2,
+        max_position_pct=0.15,      # 포지션 한도 대폭 축소
+        volatility_cap_pct=0.12,    # 고변동 허용하되 캡 존재
+    ),
+)
+
+DCA_BEAR_TREND_LOW_VOL = DCARegimePreset(
+    name="DCA Bear Trend Low Vol",
+    regime=RegimeType.BEAR_TREND_LOW_VOL,
+    config=DCAConfig(
+        base_buy_krw=50_000,        # 하락장+저변동: 금액 축소 (0.5x)
+        interval_hours=48,          # 빈도 줄임 (2일)
+        use_rsi_scaling=True,
+        rsi_oversold=25.0,          # 과매도에서만 매수
+        rsi_overbought=65.0,
+        rsi_skip=75.0,
+        rsi_scale_up=1.2,
+        rsi_scale_down=0.3,
+        max_position_pct=0.25,      # 포지션 한도 축소
+        volatility_cap_pct=0.06,
     ),
 )
 
@@ -109,8 +144,10 @@ DCA_RANGING_LOW_VOL = DCARegimePreset(
 )
 
 DCA_REGIME_MAP: dict[RegimeType, DCARegimePreset] = {
-    RegimeType.TRENDING_HIGH_VOL: DCA_TRENDING_HIGH_VOL,
-    RegimeType.TRENDING_LOW_VOL: DCA_TRENDING_LOW_VOL,
+    RegimeType.BULL_TREND_HIGH_VOL: DCA_BULL_TREND_HIGH_VOL,
+    RegimeType.BULL_TREND_LOW_VOL: DCA_BULL_TREND_LOW_VOL,
+    RegimeType.BEAR_TREND_HIGH_VOL: DCA_BEAR_TREND_HIGH_VOL,
+    RegimeType.BEAR_TREND_LOW_VOL: DCA_BEAR_TREND_LOW_VOL,
     RegimeType.RANGING_HIGH_VOL: DCA_RANGING_HIGH_VOL,
     RegimeType.RANGING_LOW_VOL: DCA_RANGING_LOW_VOL,
 }
@@ -118,20 +155,40 @@ DCA_REGIME_MAP: dict[RegimeType, DCARegimePreset] = {
 
 # ── Grid Regime Presets ──────────────────────────────────────────
 
-GRID_TRENDING_HIGH_VOL = GridRegimePreset(
-    name="Grid Trending High Vol",
-    regime=RegimeType.TRENDING_HIGH_VOL,
-    enabled=False,                  # 추세장에서 Grid 비활성화
+GRID_BULL_TREND_HIGH_VOL = GridRegimePreset(
+    name="Grid Bull Trend High Vol",
+    regime=RegimeType.BULL_TREND_HIGH_VOL,
+    enabled=False,                  # 상승추세에서 Grid 비활성화
     grid_count=0,
     grid_type=GridType.ARITHMETIC,
     investment_per_grid=0,
     range_pct=0,
 )
 
-GRID_TRENDING_LOW_VOL = GridRegimePreset(
-    name="Grid Trending Low Vol",
-    regime=RegimeType.TRENDING_LOW_VOL,
-    enabled=False,                  # 추세장에서 Grid 비활성화
+GRID_BULL_TREND_LOW_VOL = GridRegimePreset(
+    name="Grid Bull Trend Low Vol",
+    regime=RegimeType.BULL_TREND_LOW_VOL,
+    enabled=False,                  # 상승추세에서 Grid 비활성화
+    grid_count=0,
+    grid_type=GridType.ARITHMETIC,
+    investment_per_grid=0,
+    range_pct=0,
+)
+
+GRID_BEAR_TREND_HIGH_VOL = GridRegimePreset(
+    name="Grid Bear Trend High Vol",
+    regime=RegimeType.BEAR_TREND_HIGH_VOL,
+    enabled=False,                  # 하락추세에서 Grid 비활성화
+    grid_count=0,
+    grid_type=GridType.ARITHMETIC,
+    investment_per_grid=0,
+    range_pct=0,
+)
+
+GRID_BEAR_TREND_LOW_VOL = GridRegimePreset(
+    name="Grid Bear Trend Low Vol",
+    regime=RegimeType.BEAR_TREND_LOW_VOL,
+    enabled=False,                  # 하락추세에서 Grid 비활성화
     grid_count=0,
     grid_type=GridType.ARITHMETIC,
     investment_per_grid=0,
@@ -159,8 +216,10 @@ GRID_RANGING_LOW_VOL = GridRegimePreset(
 )
 
 GRID_REGIME_MAP: dict[RegimeType, GridRegimePreset] = {
-    RegimeType.TRENDING_HIGH_VOL: GRID_TRENDING_HIGH_VOL,
-    RegimeType.TRENDING_LOW_VOL: GRID_TRENDING_LOW_VOL,
+    RegimeType.BULL_TREND_HIGH_VOL: GRID_BULL_TREND_HIGH_VOL,
+    RegimeType.BULL_TREND_LOW_VOL: GRID_BULL_TREND_LOW_VOL,
+    RegimeType.BEAR_TREND_HIGH_VOL: GRID_BEAR_TREND_HIGH_VOL,
+    RegimeType.BEAR_TREND_LOW_VOL: GRID_BEAR_TREND_LOW_VOL,
     RegimeType.RANGING_HIGH_VOL: GRID_RANGING_HIGH_VOL,
     RegimeType.RANGING_LOW_VOL: GRID_RANGING_LOW_VOL,
 }

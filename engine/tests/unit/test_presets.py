@@ -1,6 +1,6 @@
 """Unit tests for strategy presets validation.
 
-Verifies all 7 presets have valid, consistent configurations.
+Verifies all 9 presets have valid, consistent configurations.
 """
 
 from __future__ import annotations
@@ -15,17 +15,19 @@ from engine.strategy.presets import (
     STR_004,
     STR_005,
     STR_006,
+    STR_007,
+    STR_008,
     STRATEGY_PRESETS,
     StrategyPreset,
 )
 from shared.enums import EntryMode, ScoringMode
 
-ALL_PRESETS = [DEFAULT_PRESET, STR_001, STR_002, STR_003, STR_004, STR_005, STR_006]
+ALL_PRESETS = [DEFAULT_PRESET, STR_001, STR_002, STR_003, STR_004, STR_005, STR_006, STR_007, STR_008]
 
 
 class TestPresetRegistry:
-    def test_registry_has_7_presets(self):
-        assert len(STRATEGY_PRESETS) == 7
+    def test_registry_has_9_presets(self):
+        assert len(STRATEGY_PRESETS) == 9
 
     def test_unique_strategy_ids(self):
         ids = [p.strategy_id for p in ALL_PRESETS]
@@ -112,3 +114,25 @@ class TestSpecificPresets:
 
     def test_str006_scalper(self):
         assert STR_006.buy_threshold <= 0.12
+
+    def test_str007_bear_defensive(self):
+        """STR-007 should have strict entry and fast exit for bear markets."""
+        assert STR_007.scoring_mode == ScoringMode.HYBRID
+        assert STR_007.buy_threshold >= 0.20
+        assert STR_007.sell_threshold >= -0.10
+        assert STR_007.use_daily_gate is True
+        assert STR_007.macro_weight >= 0.15
+        assert "1d" in STR_007.tf_weights
+
+    def test_str008_bear_cautious(self):
+        """STR-008 should have high entry bar but no daily gate."""
+        assert STR_008.scoring_mode == ScoringMode.HYBRID
+        assert STR_008.buy_threshold >= 0.15
+        assert STR_008.use_daily_gate is False
+        assert STR_008.macro_weight >= 0.10
+        assert "1d" in STR_008.tf_weights
+
+    def test_bear_presets_stricter_than_bull(self):
+        """Bear presets should have higher buy thresholds than bull."""
+        assert STR_007.buy_threshold > STR_002.buy_threshold
+        assert STR_008.buy_threshold > STR_001.buy_threshold
