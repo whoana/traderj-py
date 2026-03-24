@@ -6,11 +6,18 @@ import { engineFetch, EngineError } from "@/lib/engine";
  * Keeps API key server-side only.
  */
 
+export const dynamic = "force-dynamic";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+  "Pragma": "no-cache",
+};
+
 function handleEngineError(e: unknown) {
   if (e instanceof EngineError) {
-    return NextResponse.json({ error: e.detail }, { status: e.status });
+    return NextResponse.json({ error: e.detail }, { status: e.status, headers: NO_CACHE_HEADERS });
   }
-  return NextResponse.json({ error: "Engine unreachable" }, { status: 502 });
+  return NextResponse.json({ error: "Engine unreachable" }, { status: 502, headers: NO_CACHE_HEADERS });
 }
 
 export async function GET(
@@ -25,7 +32,7 @@ export async function GET(
   try {
     const res = await engineFetch(fullPath);
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
   } catch (e) {
     return handleEngineError(e);
   }
@@ -45,7 +52,7 @@ export async function POST(
       body: text || undefined,
     });
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
   } catch (e) {
     return handleEngineError(e);
   }
@@ -65,7 +72,7 @@ export async function PUT(
       body: text || undefined,
     });
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
   } catch (e) {
     return handleEngineError(e);
   }
@@ -81,7 +88,7 @@ export async function DELETE(
   try {
     const res = await engineFetch(enginePath, { method: "DELETE" });
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
   } catch (e) {
     return handleEngineError(e);
   }

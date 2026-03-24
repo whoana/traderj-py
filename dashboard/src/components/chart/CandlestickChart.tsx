@@ -62,6 +62,9 @@ export default function CandlestickChart() {
       if (!initialLoadDone.current) {
         chartRef.current.timeScale().fitContent();
         initialLoadDone.current = true;
+      } else {
+        // Keep chart scrolled to the latest candle on poll updates
+        chartRef.current.timeScale().scrollToRealTime();
       }
     } catch {
       // silently fail — chart stays empty
