@@ -466,3 +466,221 @@ curl -H "X-API-Key: $TRADERJ_API_KEY" \
   "started_at": "2026-03-22T03:00:00+00:00"
 }
 ```
+
+---
+
+## 22. AI Tuner — 튜닝 이력
+
+**용도:** AI 튜너가 수행한 파라미터 튜닝 이력 조회
+
+```bash
+# 전체 이력
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/history"
+
+# 전략별 필터
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/history?strategy_id=STR-001&limit=10"
+
+# 상태별 필터
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/history?status=monitoring"
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| strategy_id | query | null | 전략 ID 필터 |
+| status | query | null | `monitoring`, `confirmed`, `rolled_back`, `rejected` |
+| limit | query | 50 | 개수 (1~200) |
+
+```json
+[
+  {
+    "tuning_id": "tune-001",
+    "created_at": "2026-03-24T00:00:00+00:00",
+    "strategy_id": "STR-001",
+    "status": "monitoring",
+    "reason": "tuning_applied",
+    "changes": [
+      {
+        "parameter_name": "buy_threshold",
+        "tier": "tier_1",
+        "old_value": 0.10,
+        "new_value": 0.12,
+        "change_pct": 0.20
+      }
+    ],
+    "eval_metrics": {
+      "win_rate": 0.40,
+      "profit_factor": 1.2,
+      "max_drawdown": 0.03,
+      "eval_window": "2026-03-17~2026-03-24"
+    },
+    "validation_pf": 1.5,
+    "validation_mdd": 0.02,
+    "llm_provider": "claude",
+    "llm_model": "claude-sonnet-4-20250514",
+    "llm_confidence": "high"
+  }
+]
+```
+
+---
+
+## 23. AI Tuner — 튜닝 상세
+
+**용도:** 특정 튜닝 세션의 상세 정보 조회
+
+```bash
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/history/tune-001"
+```
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| tuning_id | path | **필수** 튜닝 세션 ID |
+
+응답: 22번과 동일한 단일 객체. 없으면 404.
+
+---
+
+## 24. AI Tuner — 수동 롤백
+
+**용도:** 특정 튜닝 세션의 파라미터 변경을 즉시 롤백
+
+```bash
+curl -X POST -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/rollback/tune-001"
+```
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| tuning_id | path | **필수** 롤백할 튜닝 세션 ID |
+
+```json
+{"status": "rolled_back", "tuning_id": "tune-001"}
+```
+
+---
+
+## 25. AI Tuner — 튜너 상태
+
+**용도:** AI Tuner 전체 상태 (파이프라인 상태, 모니터링 중 세션, 등록된 전략)
+
+```bash
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/status"
+```
+
+파라미터 없음.
+
+```json
+{
+  "state": "idle",
+  "active_monitoring": [
+    {"tuning_id": "tune-001", "strategy_id": "STR-001"}
+  ],
+  "consecutive_rollbacks": 0,
+  "registered_strategies": ["STR-001"],
+  "latest_tuning": {
+    "STR-001": { "tuning_id": "tune-001", "status": "monitoring", "..." : "..." }
+  }
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| state | `idle`, `evaluating`, `optimizing`, `applying`, `monitoring`, `suspended` |
+| active_monitoring | 현재 48시간 모니터링 중인 세션 목록 |
+| consecutive_rollbacks | 연속 롤백 횟수 (3회 이상이면 SUSPENDED) |
+| registered_strategies | 튜너에 등록된 전략 ID 목록 |
+| latest_tuning | 전략별 최근 튜닝 결과 |
+
+---
+
+## 26. AI Tuner — LLM 프로바이더 상태
+
+**용도:** Claude/OpenAI 프로바이더 건강 상태 및 비용 예산 확인
+
+```bash
+curl -H "X-API-Key: $TRADERJ_API_KEY" \
+  "https://traderj-engine.fly.dev/api/v1/tuning/provider-status"
+```
+
+파라미터 없음.
+
+```json
+{
+  "claude": {"state": "closed", "failures": 0},
+  "budget": {"used_usd": 0.05, "limit_usd": 5.0}
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| claude/openai | Circuit Breaker 상태 (`closed`=정상, `open`=차단, `half_open`=복구 시도) |
+| budget | 월간 LLM 비용 사용량/한도 (USD) |
+
+---
+
+## 27. AI Tuner — 수동 튜닝 트리거
+
+**용도:** 특정 전략에 대해 즉시 튜닝 세션 실행 (디버깅/테스트용)
+
+```bash
+curl -X POST -H "X-API-Key: $TRADERJ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tier": "tier_1"}' \
+  "https://traderj-engine.fly.dev/api/v1/tuning/trigger/STR-001"
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| strategy_id | path | **필수** | 전략 ID |
+| tier | body | tier_1 | `tier_1` (시그널), `tier_2` (리스크), `tier_3` (레짐) |
+
+```json
+{
+  "tuning_id": "tune-002",
+  "strategy_id": "STR-001",
+  "tier": "tier_1",
+  "status": "monitoring",
+  "reason": "tuning_applied",
+  "changes_count": 3
+}
+```
+
+| status 값 | 의미 |
+|-----------|------|
+| monitoring | 튜닝 적용 완료, 48시간 모니터링 시작 |
+| rejected | 최소 거래 수 미달 또는 가드레일 위반 |
+| pending_approval | Tier 3 변경 — 수동 승인 대기 |
+
+---
+
+## 28. AI Tuner — Tier 3 승인/거부
+
+**용도:** Tier 3 (레짐 파라미터) 변경에 대한 수동 승인 또는 거부
+
+```bash
+# 승인
+curl -X POST -H "X-API-Key: $TRADERJ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"approved": true}' \
+  "https://traderj-engine.fly.dev/api/v1/tuning/approve/tune-003"
+
+# 거부
+curl -X POST -H "X-API-Key: $TRADERJ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"approved": false}' \
+  "https://traderj-engine.fly.dev/api/v1/tuning/approve/tune-003"
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| tuning_id | path | **필수** | 승인 대기 중인 튜닝 세션 ID |
+| approved | body | true | `true`=승인, `false`=거부 |
+
+```json
+{"tuning_id": "tune-003", "action": "approved"}
+```

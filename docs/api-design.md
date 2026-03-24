@@ -131,7 +131,25 @@ run_paper.py
 | POST | `/api/v1/bots/{strategy_id}/start` | 봇 시작 | `bots.py` |
 | POST | `/api/v1/bots/{strategy_id}/stop` | 봇 정지 | `bots.py` |
 
-### 3.8 WebSocket (실시간)
+### 3.8 AI Tuner (자동 파라미터 튜닝)
+
+| Method | Path | 설명 | 파라미터 | 구현 파일 |
+|--------|------|------|----------|-----------|
+| GET | `/api/v1/tuning/history` | 튜닝 이력 조회 | `?strategy_id=&status=&limit=50` | `tuning.py` |
+| GET | `/api/v1/tuning/history/{tuning_id}` | 튜닝 상세 조회 | path: `tuning_id` | `tuning.py` |
+| POST | `/api/v1/tuning/rollback/{tuning_id}` | 수동 롤백 | path: `tuning_id` | `tuning.py` |
+| GET | `/api/v1/tuning/status` | 튜너 상태 조회 | - | `tuning.py` |
+| GET | `/api/v1/tuning/provider-status` | LLM 프로바이더 상태 | - | `tuning.py` |
+| POST | `/api/v1/tuning/trigger/{strategy_id}` | 수동 튜닝 트리거 | path: `strategy_id`, body: `{"tier": "tier_1"}` | `tuning.py` |
+| POST | `/api/v1/tuning/approve/{tuning_id}` | Tier 3 승인/거부 | path: `tuning_id`, body: `{"approved": true}` | `tuning.py` |
+
+**설계 포인트:**
+- `app_state.tuner_pipeline`에서 TunerPipeline 참조
+- 튜너 미활성화 시 모든 엔드포인트 503 반환
+- 수동 트리거는 디버깅/테스트 용도
+- Tier 3 변경은 반드시 수동 승인 후 적용
+
+### 3.9 WebSocket (실시간)
 
 | Path | 설명 |
 |------|------|
@@ -165,7 +183,8 @@ run_paper.py
 | 설정/레짐 조회 | 2 |
 | 시스템 | 1 |
 | 봇 관리 | 4 |
-| **합계** | **27** |
+| AI Tuner | 7 |
+| **합계** | **34** |
 
 ---
 
