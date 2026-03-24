@@ -46,11 +46,11 @@ interface HelpEntry {
   related?: string[];    // 관련 항목 id 목록
 }
 
-type HelpCategory = "metric" | "status" | "action" | "concept" | "page";
+type HelpCategory = "metric" | "status" | "action" | "concept" | "page" | "process";
 type PageName = "home" | "analytics" | "tuner" | "control" | "settings";
 ```
 
-## 4. 도움말 항목 목록 (65항목)
+## 4. 도움말 항목 목록 (75항목)
 
 ### 4.1 핵심 지표 (Metrics) — 12항목
 
@@ -150,6 +150,23 @@ type PageName = "home" | "analytics" | "tuner" | "control" | "settings";
 | str_007 | STR-007 Bear Defensive | 약세장 방어. 극단적 과매도 반전만 매수. Bear(High Vol) 시장용. |
 | str_008 | STR-008 Bear Cautious | 약세장 신중한 반전. STR-007보다 완화. Bear(Low Vol) 시장용. |
 
+### 4.7 AI 전략 선택 과정 (Process) — 10항목
+
+AI Tuner가 전략 파라미터를 선택하고 적용하는 전체 과정을 단계별로 설명합니다.
+
+| ID | Term | 한국어 | 설명 |
+|----|------|--------|------|
+| process_overview | AI Tuning Process | AI 튜닝 전체 흐름 | 매주 AI가 지난 거래 성적을 분석하고, 더 나은 설정값을 찾아 적용한 뒤, 48시간 감시 후 확정하거나 자동 롤백합니다. 평가 → 최적화 → 적용 → 감시 4단계로 진행됩니다. |
+| process_evaluate | Step 1: Evaluate | 1단계: 평가 | 지난 7일간 거래 기록을 분석하여 성적표를 만듭니다. 승률, 수익팩터, 최대낙폭, 시그널 정확도를 계산합니다. 최소 3건 이상의 거래가 있어야 평가가 진행됩니다. 성적이 이미 양호하면(PF>1.5, 승률>40%) 튜닝을 건너뜁니다. |
+| process_optimize | Step 2: Optimize | 2단계: 최적화 | 통계 엔진(Optuna)이 50가지 설정 조합을 백테스트 시뮬레이션하여 상위 3개 후보를 추출합니다. 동시에 AI(Claude)가 성적표를 읽고 "이 시장에서는 어떤 후보가 적합한지" 분석합니다. AI가 최종 후보 1개를 선택합니다. |
+| process_safety_bt | Safety Backtest | 안전 백테스트 | 최적화로 선택된 후보를 실제 적용 전에 최근 데이터로 백테스트합니다. AI가 백테스트 결과를 평가하여 "적용해도 안전한지" 최종 판단합니다. 위험하다고 판단되면 적용하지 않습니다. |
+| process_apply | Step 3: Apply | 3단계: 적용 | 안전 검증을 통과한 새 파라미터를 실시간 봇에 적용합니다. 가드레일이 작동하여 한 번에 최대 20%까지만 변경 가능하고, 허용 범위를 벗어나면 자동으로 범위 내로 클램핑됩니다. 비중값은 합계가 1.0이 되도록 자동 정규화됩니다. |
+| process_monitor | Step 4: Monitor | 4단계: 감시 | 새 설정 적용 후 48시간 동안 실시간 모니터링합니다. 최대낙폭이 기준의 2배를 넘거나 연속 5회 손실 시 자동 롤백됩니다. 48시간 무사 통과하면 새 설정이 확정됩니다. |
+| process_optuna_role | Optuna (Statistics) | 통계 엔진 역할 | Optuna는 수학적 최적화 프레임워크입니다. 파라미터 조합을 생성하고 Walk-Forward 백테스트로 성과를 측정하여 상위 후보를 추출합니다. AI 없이도 독립적으로 동작 가능합니다(Degraded Mode). |
+| process_claude_role | Claude (AI Analysis) | AI 분석 역할 | Claude는 성적표를 읽고 시장 상황을 고려한 진단을 합니다. 근본 원인 분석(예: "횡보장에서 추세추종 전략이 맞지 않음"), 파라미터 조정 방향 추천, Optuna 후보 중 최적 선택, 안전 백테스트 결과 평가를 담당합니다. |
+| process_provider_chain | Provider Fallback Chain | AI 장애 대응 | 1순위 Claude → 2순위 OpenAI → 3순위 Degraded Mode(AI 없이 통계만) 3중 구조입니다. 각 서비스에 서킷 브레이커가 적용되어 3회 연속 실패 시 10분간 차단 후 재시도합니다. 월 $5 예산 초과 시 자동으로 Degraded Mode로 전환됩니다. |
+| process_guardrails | Guardrails | 안전장치 | 변경 전: 최대 변경폭 ±20%, 절대 범위 제한, Tier 2 동일 방향 연속 차단, Tier 3 사람 승인 필수. 변경 후: 48시간 모니터링, 낙폭 초과 시 자동 롤백, 연속 5회 손실 시 자동 롤백, 연속 3회 롤백 시 튜너 일시 중지(사람 개입 필요). |
+
 ## 5. 구현 계획
 
 ### 5.1 파일 구조
@@ -182,9 +199,9 @@ dashboard/src/
 - ESC 또는 외부 클릭으로 닫기
 
 #### helpData.ts
-- 위 65개 항목을 `HelpEntry[]` 배열로 정의
+- 위 75개 항목을 `HelpEntry[]` 배열로 정의
 - term + termKo 모두 검색 대상
-- category별 아이콘: metric=차트, status=원, action=번개, concept=책, page=페이지
+- category별 아이콘: metric=차트, status=원, action=번개, concept=책, page=페이지, process=화살표흐름
 
 ### 5.3 검색 로직
 
@@ -204,18 +221,20 @@ function searchHelp(query: string): HelpEntry[] {
 
 ### 5.4 주요 항목 바로가기 (기본 표시)
 
-검색란이 비어있을 때 표시되는 항목 (10개):
+검색란이 비어있을 때 표시되는 항목 (12개):
 
-1. **Total Balance** — 총 잔고
-2. **Return** — 수익률
-3. **Regime** — 시장 체제
-4. **Win Rate** — 승률
-5. **AI Tuner** — AI 자동 튜닝
-6. **Stop Loss / Take Profit** — 손절/익절
-7. **Strategy Preset** — 전략 프리셋
-8. **LLM Budget** — AI 비용
-9. **Profit Factor** — 수익 팩터
-10. **Emergency Stop** — 긴급 정지
+1. **AI Tuning Process** — AI 전략 선택 전체 흐름
+2. **Total Balance** — 총 잔고
+3. **Return** — 수익률
+4. **Regime** — 시장 체제
+5. **Win Rate** — 승률
+6. **AI Tuner** — AI 자동 튜닝
+7. **Stop Loss / Take Profit** — 손절/익절
+8. **Strategy Preset** — 전략 프리셋
+9. **Guardrails** — 안전장치
+10. **LLM Budget** — AI 비용
+11. **Profit Factor** — 수익 팩터
+12. **Emergency Stop** — 긴급 정지
 
 ### 5.5 페이지별 가이드
 
@@ -237,7 +256,7 @@ function searchHelp(query: string): HelpEntry[] {
 ## 7. 디자인 노트
 
 - 다크 테마 기본, 기존 디자인 시스템 색상 활용
-- 카테고리별 태그 색상: metric(accent), status(warning), action(error), concept(muted), page(running)
+- 카테고리별 태그 색상: metric(accent), status(warning), action(error), concept(muted), page(running), process(up/green)
 - 모바일 우선: 터치 친화적 목록 간격
 - 애니메이션: 패널 슬라이드 다운 (150ms ease-out)
 - 접근성: 키보드 네비게이션, aria-label, focus trap
