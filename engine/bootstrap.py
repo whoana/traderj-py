@@ -209,7 +209,30 @@ async def bootstrap(
     # Store trading loops map on app for multi-strategy access
     app.register("trading_loops", trading_loops)
 
-    # [8] MacroCollector — fetch macro indicators every 5 minutes
+    # [8] AI Tuner (if enabled)
+    if settings.tuner and settings.tuner.enabled:
+        from engine.tuner import create_tuner
+
+        tuner_pipeline = await create_tuner(
+            settings=settings.tuner,
+            data_store=store,
+            notifier=notifier,
+        )
+
+        # Register strategies with tuner
+        for sid in strategy_ids:
+            suffix = f":{sid}" if multi_strategy else ""
+            sig_gen = app.get(f"signal_generator{suffix}")
+            tuner_pipeline.register_strategy(
+                strategy_id=sid,
+                signal_generator=sig_gen,
+                exchange_client=exchange,
+            )
+
+        app.register("tuner_pipeline", tuner_pipeline)
+        logger.info("AI Tuner registered for strategies: %s", strategy_ids)
+
+    # [9] MacroCollector — fetch macro indicators every 5 minutes
     macro_collector = MacroCollector(data_store=store)
     app.register("macro_collector", macro_collector)
 
@@ -288,5 +311,24 @@ async def bootstrap_and_run(settings: AppSettings | None = None) -> None:
         job_id="macro-collect",
     )
     logger.info("Registered macro collector job (every 5m)")
+
+    # AI Tuner scheduler jobs
+    tuner = app.components.get("tuner_pipeline")
+    if tuner:
+        # Weekly tuning (Monday 00:00 UTC)
+        app.scheduler.add_cron_job(
+            tuner.run_scheduled_tuning,
+            day_of_week="mon",
+            hour=0,
+            minute=0,
+            job_id="tuner-weekly",
+        )
+        # Hourly monitoring check
+        app.scheduler.add_interval_job(
+            tuner.check_monitoring,
+            seconds=3600,
+            job_id="tuner-monitoring",
+        )
+        logger.info("Registered AI Tuner scheduler jobs")
 
     await app.run()

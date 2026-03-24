@@ -20,6 +20,7 @@ class AppState:
         self.event_bus: Any = None
         self.exchange: Any = None
         self.settings: Any = None
+        self.tuner_pipeline: Any = None  # TunerPipeline (if enabled)
         self.embedded: bool = False  # True when running inside engine process
 
     def set_data_store(self, store: Any) -> None:

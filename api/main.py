@@ -36,6 +36,7 @@ from api.routes import (
     positions,
     risk,
     signals,
+    tuning,
     version,
 )
 from api.ws import handler as ws_handler
@@ -135,6 +136,7 @@ def _configure_app(app: FastAPI) -> FastAPI:
     app.include_router(config.router, prefix="/api/v1")
     app.include_router(version.router, prefix="/api/v1")
     app.include_router(passkeys.router, prefix="/api/v1")
+    app.include_router(tuning.router, prefix="/api/v1")
 
     # ── WebSocket ─────────────────────────────────────────────────
     app.include_router(ws_handler.router)
@@ -170,6 +172,7 @@ def create_embedded_app(
     event_bus: Any,
     exchange: Any,
     settings: Any = None,
+    tuner_pipeline: Any = None,
 ) -> FastAPI:
     """Build embedded FastAPI application sharing engine components.
 
@@ -182,6 +185,8 @@ def create_embedded_app(
     app_state.set_exchange(exchange)
     if settings:
         app_state.set_settings(settings)
+    if tuner_pipeline:
+        app_state.tuner_pipeline = tuner_pipeline
     app_state.embedded = True
 
     app = FastAPI(

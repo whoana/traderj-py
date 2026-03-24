@@ -34,7 +34,7 @@ setup_logging(level="INFO")
 logger = logging.getLogger("paper")
 
 
-async def _start_api_server(store, trading_loops, event_bus, exchange, settings):
+async def _start_api_server(store, trading_loops, event_bus, exchange, settings, tuner=None):
     """Start embedded FastAPI server as a background task."""
     import uvicorn
 
@@ -46,6 +46,7 @@ async def _start_api_server(store, trading_loops, event_bus, exchange, settings)
         event_bus=event_bus,
         exchange=exchange,
         settings=settings,
+        tuner_pipeline=tuner,
     )
 
     port = settings.api.port if settings else 8000
@@ -136,8 +137,9 @@ async def run_paper(strategy_ids: list[str], ticks: int = 0, enable_api: bool = 
 
         # Start API server if enabled
         if enable_api:
+            tuner = app.components.get("tuner_pipeline")
             api_task = asyncio.create_task(
-                _start_api_server(store, trading_loops, app.event_bus, exchange, settings)
+                _start_api_server(store, trading_loops, app.event_bus, exchange, settings, tuner)
             )
 
         # Engine start notification

@@ -169,6 +169,24 @@ class MarketDataEvent:
     timestamp: float = field(default_factory=time)
 
 
+@dataclass(frozen=True)
+class TuningAppliedEvent:
+    strategy_id: str
+    tuning_id: str
+    tier: str
+    changes_count: int
+    provider: str
+    timestamp: float = field(default_factory=time)
+
+
+@dataclass(frozen=True)
+class TuningRolledBackEvent:
+    strategy_id: str
+    tuning_id: str
+    reason: str
+    timestamp: float = field(default_factory=time)
+
+
 # All event types for EventBus type registration
 EVENT_TYPES = (
     MarketTickEvent,
@@ -186,4 +204,6 @@ EVENT_TYPES = (
     RegimeChangeEvent,
     RiskStateEvent,
     MarketDataEvent,
+    TuningAppliedEvent,
+    TuningRolledBackEvent,
 )
