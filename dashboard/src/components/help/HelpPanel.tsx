@@ -76,7 +76,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-1 z-50 w-[calc(100vw-1rem)] sm:w-96 max-h-[70vh] overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl flex flex-col"
+      className="fixed inset-x-2 top-12 z-50 max-h-[75vh] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-96 overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl flex flex-col"
     >
       {/* Search */}
       <div className="border-b border-border p-3">
@@ -187,8 +187,8 @@ function HelpItem({
         <span className={`shrink-0 text-[9px] font-semibold uppercase ${cat.color}`}>
           {cat.label}
         </span>
-        <span className="flex-1 truncate text-sm text-text-primary">{entry.term}</span>
-        <span className="shrink-0 text-[10px] text-text-muted">{entry.termKo}</span>
+        <span className="flex-1 truncate text-xs sm:text-sm text-text-primary">{entry.term}</span>
+        <span className="hidden sm:inline shrink-0 text-[10px] text-text-muted">{entry.termKo}</span>
         <svg
           className={`h-3.5 w-3.5 shrink-0 text-text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
