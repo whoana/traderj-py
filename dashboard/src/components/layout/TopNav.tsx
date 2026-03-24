@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { HelpPanel } from "@/components/help/HelpPanel";
 
 const navLinks = [
   { href: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -22,6 +24,7 @@ function NavIcon({ d }: { d: string }) {
 
 export function TopNav() {
   const pathname = usePathname();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 flex h-11 sm:h-14 items-center border-b border-border bg-bg-primary/80 px-2 sm:px-4 backdrop-blur-sm">
@@ -52,6 +55,22 @@ export function TopNav() {
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <EngineStatusDot />
+        <div className="relative">
+          <button
+            onClick={() => setHelpOpen(!helpOpen)}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold transition-colors",
+              helpOpen
+                ? "bg-accent text-white"
+                : "text-text-muted hover:bg-bg-hover hover:text-text-primary",
+            )}
+            title="Help"
+            aria-label="Help"
+          >
+            ?
+          </button>
+          <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
+        </div>
         <LogoutButton />
       </div>
     </header>
