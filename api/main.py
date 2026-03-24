@@ -22,6 +22,7 @@ from api.middleware.metrics import PrometheusMiddleware, metrics_endpoint
 from api.middleware.security import SecurityHeadersMiddleware, SensitiveDataFilter
 from api.routes import (
     analytics,
+    backtest,
     balance,
     bots,
     candles,
@@ -137,6 +138,7 @@ def _configure_app(app: FastAPI) -> FastAPI:
     app.include_router(version.router, prefix="/api/v1")
     app.include_router(passkeys.router, prefix="/api/v1")
     app.include_router(tuning.router, prefix="/api/v1")
+    app.include_router(backtest.router, prefix="/api/v1")
 
     # ── WebSocket ─────────────────────────────────────────────────
     app.include_router(ws_handler.router)

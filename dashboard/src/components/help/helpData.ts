@@ -97,10 +97,16 @@ export const helpEntries: HelpEntry[] = [
   { id: "pnl", term: "PnL", termKo: "손익", category: "concept", description: "Profit and Loss. 수익(양수)과 손실(음수)을 나타냄.", related: ["total_pnl", "return_pct"] },
   { id: "paper_mode", term: "Paper Trading", termKo: "모의 매매", category: "concept", description: "실제 자금 없이 가상으로 매매를 시뮬레이션하는 모드." },
   { id: "optuna", term: "Optuna", termKo: "통계 최적화", category: "concept", description: "파라미터 최적화 프레임워크. AI Tuner가 백테스트 성과를 극대화하는 파라미터를 탐색.", related: ["process_optuna_role"] },
+  { id: "backtest", term: "Backtest", termKo: "백테스트", category: "concept", description: "과거 가격 데이터로 전략 성과를 시뮬레이션. 최소 7일, 최대 180일 기간 설정. 캔들 데이터는 DB에 캐시되어 재실행 시 빠르게 로드됨.", related: ["backtest_compare", "backtest_ai_regime", "equity_curve"] },
+  { id: "backtest_compare", term: "Strategy Compare", termKo: "전략 비교", category: "process", description: "8개 전략 프리셋을 동일 기간에 실행하여 수익률, 승률, MDD 등을 비교. 최적 전략 식별 후 라이브 전환 가능.", related: ["backtest", "preset"] },
+  { id: "backtest_ai_regime", term: "AI Regime Backtest", termKo: "AI 레짐 백테스트", category: "process", description: "주간 단위로 시장 체제를 감지하고 자동으로 전략을 전환하는 AI 로직의 과거 성과 시뮬레이션. 개별 전략 고정 운용 대비 성과를 비교.", related: ["backtest", "regime"] },
+  { id: "equity_curve", term: "Equity Curve", termKo: "자산 곡선", category: "metric", description: "백테스트 기간 동안 자산 가치의 변화를 시각화한 곡선. 초기 투자금 대비 수익률(%)로 표시.", related: ["backtest", "return_pct"] },
+  { id: "backtest_period", term: "Backtest Period", termKo: "백테스트 기간", category: "concept", description: "시뮬레이션 대상 기간. 빠른 선택(1M/3M/6M/1Y) 또는 날짜 직접 입력. 60일 워밍업 기간이 자동 포함됨.", related: ["backtest"] },
 
-  // ── Pages (5) ──
+  // ── Pages (6) ──
   { id: "page_home", term: "Home", termKo: "홈 대시보드", category: "page", description: "실시간 요약 대시보드. 잔고, 수익률, BTC 가격, 시장 체제, 차트, AI Tuner 상태, 포지션, 매크로 지표를 한눈에 확인." },
   { id: "page_analytics", term: "Analytics", termKo: "분석", category: "page", description: "기간별 성과 분석. 누적 PnL 차트, 일별 PnL 차트, 최근 주문 내역 테이블. 7D~90D 기간 선택." },
+  { id: "page_backtest", term: "Backtest", termKo: "백테스트", category: "page", description: "과거 기간 백테스트. 전략 비교(8개), 단일 전략, AI Regime 3가지 모드. 이퀴티 커브, 랭킹 테이블, 트레이드 목록 시각화. 결과 기반 전략 전환 액션 제공.", related: ["backtest", "backtest_compare", "backtest_ai_regime"] },
   { id: "page_tuner", term: "AI Tuner", termKo: "AI 튜너", category: "page", description: "AI 자동 튜닝 관리. 튜너 상태 확인, 수동 튜닝 실행, 롤백, Tier 3 승인, 튜닝 히스토리 조회." },
   { id: "page_control", term: "Control", termKo: "제어", category: "page", description: "엔진 및 전략 제어. 엔진 시작/정지/재시작, 전략 프리셋 전환, 포지션 청산, SL/TP 수동 조정." },
   { id: "page_settings", term: "Settings", termKo: "설정", category: "page", description: "시스템 설정. 패스키 인증 관리, Regime/Risk/Macro/Strategy 현재 상태 확인." },
