@@ -65,6 +65,27 @@ interface MacroData {
   market_score?: number;
 }
 
+interface TunerStatus {
+  state: string;
+  active_monitoring: { tuning_id: string; strategy_id: string }[];
+  consecutive_rollbacks: number;
+  registered_strategies: string[];
+  latest_tuning?: Record<string, {
+    tuning_id: string;
+    status: string;
+    created_at: string;
+    reason?: string;
+    changes?: { parameter_name: string; old_value: number; new_value: number }[];
+  }>;
+}
+
+interface ProviderStatus {
+  claude?: { state: string; failures: number };
+  openai?: { state: string; failures: number };
+  budget?: { used_usd: number; limit_usd: number };
+  error?: string;
+}
+
 interface CandleRaw {
   time: string;
   open: number;
@@ -94,6 +115,8 @@ export default function DashboardPage() {
   const [positions, setPositions] = useState<PositionData[]>([]);
   const [macro, setMacro] = useState<MacroData | null>(null);
   const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
+  const [tuner, setTuner] = useState<TunerStatus | null>(null);
+  const [provider, setProvider] = useState<ProviderStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
@@ -101,7 +124,7 @@ export default function DashboardPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [bal, eng, pos, mac, candles] = await Promise.allSettled([
+      const [bal, eng, pos, mac, candles, tun, prov] = await Promise.allSettled([
         api.get<BalanceData>("/engine/balance?strategy_id=STR-001"),
         api.get<EngineStatus>("/engine/engine/status"),
         api.get<{ items?: PositionData[]; positions?: PositionData[] }>(
@@ -109,6 +132,8 @@ export default function DashboardPage() {
         ),
         api.get<MacroData>("/engine/macro/latest"),
         api.get<CandleRaw[]>("/engine/candles/BTC-KRW/1d?limit=2"),
+        api.get<TunerStatus>("/engine/tuning/status"),
+        api.get<ProviderStatus>("/engine/tuning/provider-status"),
       ]);
 
       if (bal.status === "fulfilled") setBalance(bal.value);
@@ -124,6 +149,8 @@ export default function DashboardPage() {
         const change = prev ? ((latest.close - prev.close) / prev.close) * 100 : 0;
         setBtcPrice({ price: latest.close, change });
       }
+      if (tun.status === "fulfilled") setTuner(tun.value);
+      if (prov.status === "fulfilled") setProvider(prov.value);
 
       setError(null);
     } catch (e) {
@@ -271,6 +298,89 @@ export default function DashboardPage() {
       <Card title="BTC/KRW" className="p-2.5 sm:p-4">
         <CandlestickChart />
       </Card>
+
+      {/* AI Tuner Status */}
+      {tuner && (
+        <Card title="AI Tuner" className="p-2.5 sm:p-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] sm:text-xs text-text-muted">State</p>
+              <StatusBadge
+                status={tuner.state === "idle" ? "running" : tuner.state === "suspended" ? "error" : "warning"}
+                label={tuner.state}
+                className="mt-0.5"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs text-text-muted">Monitoring</p>
+              <p className="mt-0.5 font-mono text-sm font-medium">
+                {tuner.active_monitoring.length > 0 ? (
+                  <span className="text-status-warning">{tuner.active_monitoring.length} active</span>
+                ) : (
+                  <span className="text-text-secondary">none</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs text-text-muted">Rollbacks</p>
+              <p className={`mt-0.5 font-mono text-sm font-medium ${tuner.consecutive_rollbacks >= 2 ? "text-status-error" : "text-text-primary"}`}>
+                {tuner.consecutive_rollbacks}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs text-text-muted">LLM Budget</p>
+              <p className="mt-0.5 font-mono text-sm font-medium">
+                {provider?.budget ? (
+                  <span className={provider.budget.used_usd / provider.budget.limit_usd > 0.8 ? "text-status-warning" : "text-text-primary"}>
+                    ${provider.budget.used_usd.toFixed(2)} / ${provider.budget.limit_usd.toFixed(0)}
+                  </span>
+                ) : (
+                  <span className="text-text-secondary">--</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {/* Latest tuning info */}
+          {tuner.latest_tuning && Object.entries(tuner.latest_tuning).map(([sid, rec]) => (
+            <div key={sid} className="mt-2 rounded-md border border-border/50 px-2.5 py-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] sm:text-xs text-text-muted">Latest: {sid}</span>
+                <StatusBadge
+                  status={rec.status === "confirmed" ? "running" : rec.status === "rolled_back" ? "error" : rec.status === "monitoring" ? "warning" : "default"}
+                  label={rec.status}
+                />
+              </div>
+              {rec.created_at && (
+                <p className="mt-1 text-[10px] text-text-muted">
+                  {new Date(rec.created_at).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {rec.reason && ` — ${rec.reason}`}
+                </p>
+              )}
+            </div>
+          ))}
+          {/* Provider status */}
+          {provider && !provider.error && (
+            <div className="mt-2 flex gap-2">
+              {provider.claude && (
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  provider.claude.state === "closed" ? "bg-status-running/20 text-status-running" : "bg-status-error/20 text-status-error"
+                }`}>
+                  <span className="h-1 w-1 rounded-full bg-current" />
+                  Claude {provider.claude.state}
+                </span>
+              )}
+              {provider.openai && (
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  provider.openai.state === "closed" ? "bg-status-running/20 text-status-running" : "bg-status-error/20 text-status-error"
+                }`}>
+                  <span className="h-1 w-1 rounded-full bg-current" />
+                  OpenAI {provider.openai.state}
+                </span>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Bottom Grid: Positions + Macro */}
       <div className="grid grid-cols-1 gap-2 sm:gap-4 lg:grid-cols-2">
