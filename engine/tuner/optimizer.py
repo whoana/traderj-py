@@ -435,13 +435,15 @@ class HybridOptimizer:
             merged.update(new_tf)
             sig.tf_weights = merged
 
-        # Score weights
+        # Score weights (normalize to sum=1.0)
         if any(k.startswith("score_w") for k in params):
-            sig.score_weights = ScoreWeights(
-                w1=params.get("score_w1", sig.score_weights.w1),
-                w2=params.get("score_w2", sig.score_weights.w2),
-                w3=params.get("score_w3", sig.score_weights.w3),
-            )
+            w1 = params.get("score_w1", sig.score_weights.w1)
+            w2 = params.get("score_w2", sig.score_weights.w2)
+            w3 = params.get("score_w3", sig.score_weights.w3)
+            total = w1 + w2 + w3
+            if total > 0:
+                w1, w2, w3 = w1 / total, w2 / total, w3 / total
+            sig.score_weights = ScoreWeights(w1=w1, w2=w2, w3=w3)
 
         return sig
 
