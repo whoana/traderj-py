@@ -45,7 +45,7 @@ class BacktestTrade:
 class BacktestConfig:
     """Backtest execution parameters."""
 
-    initial_balance_krw: float = 10_000_000.0
+    initial_balance_krw: float = 50_000_000.0
     fee_rate: float = 0.0005
     slippage_bps: float = 5.0
     max_bars: int | None = None
@@ -55,7 +55,7 @@ class BacktestConfig:
 class BacktestState:
     """Mutable state during backtest execution."""
 
-    balance_krw: float = 10_000_000.0
+    balance_krw: float = 50_000_000.0
     position_btc: float = 0.0
     entry_price: float = 0.0
     entry_time: datetime | None = None

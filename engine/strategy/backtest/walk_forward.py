@@ -238,7 +238,7 @@ class WalkForwardEngine:
 
         all_trades: list[BacktestTrade] = []
         all_equity: list[dict] = []
-        initial_balance = 10_000_000.0
+        initial_balance = 50_000_000.0
 
         for w in valid:
             all_trades.extend(w.oos_result.trades)

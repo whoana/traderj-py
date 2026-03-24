@@ -52,7 +52,7 @@ class TradingSettings(BaseSettings):
     symbols: list[str] = ["BTC/KRW"]
     strategy_id: str = "STR-001"
     strategy_ids: list[str] = []
-    initial_krw: int = 10_000_000
+    initial_krw: int = 50_000_000
     max_position_pct: float = 0.3
     daily_loss_limit: int = 200_000
     max_consecutive_losses: int = 3
