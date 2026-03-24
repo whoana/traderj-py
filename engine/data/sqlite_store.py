@@ -219,10 +219,11 @@ class SqliteDataStore:
         if end:
             query += " AND time <= ?"
             params.append(end.isoformat())
-        query += " ORDER BY time ASC LIMIT ?"
+        query += " ORDER BY time DESC LIMIT ?"
         params.append(limit)
 
         rows = await self.db.execute_fetchall(query, params)
+        rows = list(reversed(rows))  # Return in ascending order
         return [
             Candle(
                 time=datetime.fromisoformat(r["time"]),

@@ -245,11 +245,11 @@ class PostgresDataStore:
             query += f" AND time <= ${idx}"
             params.append(end)
             idx += 1
-        query += f" ORDER BY time ASC LIMIT ${idx}"
+        query += f" ORDER BY time DESC LIMIT ${idx}"
         params.append(limit)
 
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch(query, *params)
+            rows = list(reversed(await conn.fetch(query, *params)))
         return [
             Candle(
                 time=r["time"],
