@@ -5,6 +5,7 @@ Uses pydantic-settings for typed, validated configuration.
 
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import quote_plus
 
 from pydantic import model_validator
@@ -100,3 +101,13 @@ class AppSettings(BaseSettings):
     trading: TradingSettings = TradingSettings()
     api: APISettings = APISettings()
     telegram: TelegramSettings = TelegramSettings()
+    tuner: Any = None
+
+    @model_validator(mode="after")
+    def _init_tuner(self) -> AppSettings:
+        """Lazy-import TunerSettings to avoid circular deps."""
+        if self.tuner is None:
+            from engine.tuner.config import TunerSettings
+
+            self.tuner = TunerSettings()
+        return self

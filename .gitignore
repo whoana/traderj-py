@@ -23,6 +23,7 @@ env/
 *~
 
 # Environment / Secrets
+.whoana
 .env
 .env.local
 .env.*.local
@@ -83,3 +84,4 @@ reports/
 docs/.pdca-snapshots/
 docs/.pdca-status.json
 docs/.bkit-memory.json
+.vercel

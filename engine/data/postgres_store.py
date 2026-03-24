@@ -166,6 +166,51 @@ CREATE INDEX IF NOT EXISTS idx_daily_pnl_strategy ON daily_pnl(strategy_id, date
 CREATE INDEX IF NOT EXISTS idx_bot_commands_pending ON bot_commands(strategy_id, status);
 CREATE INDEX IF NOT EXISTS idx_bt_strategy ON backtest_results(strategy_id);
 CREATE INDEX IF NOT EXISTS idx_bt_created ON backtest_results(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS tuning_history (
+    id              SERIAL PRIMARY KEY,
+    tuning_id       TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL,
+    strategy_id     TEXT NOT NULL,
+    tier            TEXT NOT NULL,
+    parameter_name  TEXT NOT NULL,
+    old_value       DOUBLE PRECISION NOT NULL,
+    new_value       DOUBLE PRECISION NOT NULL,
+    change_pct      DOUBLE PRECISION NOT NULL,
+    reason          TEXT NOT NULL,
+    eval_window     TEXT NOT NULL,
+    eval_pf         DOUBLE PRECISION,
+    eval_mdd        DOUBLE PRECISION,
+    eval_winrate    DOUBLE PRECISION,
+    validation_pf   DOUBLE PRECISION,
+    validation_mdd  DOUBLE PRECISION,
+    llm_provider    TEXT,
+    llm_model       TEXT,
+    llm_diagnosis   JSONB,
+    llm_confidence  TEXT,
+    status          TEXT NOT NULL DEFAULT 'applied',
+    rollback_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_th_strategy ON tuning_history(strategy_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_th_status ON tuning_history(status);
+
+CREATE TABLE IF NOT EXISTS tuning_report (
+    id              SERIAL PRIMARY KEY,
+    tuning_id       TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL,
+    eval_window     TEXT NOT NULL,
+    strategy_id     TEXT NOT NULL,
+    regime          TEXT,
+    total_trades    INTEGER,
+    win_rate        DOUBLE PRECISION,
+    profit_factor   DOUBLE PRECISION,
+    max_drawdown    DOUBLE PRECISION,
+    avg_r_multiple  DOUBLE PRECISION,
+    signal_accuracy DOUBLE PRECISION,
+    recommendations JSONB,
+    applied_changes JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_tr_strategy ON tuning_report(strategy_id, created_at DESC);
 """
 
 

@@ -19,6 +19,8 @@ structlog = "*"
 prometheus-client = "*"
 pydantic-settings = "*"
 python-telegram-bot = "*"
+optuna = ">=3.0"
+httpx = ">=0.24"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

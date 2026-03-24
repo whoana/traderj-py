@@ -160,6 +160,51 @@ CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER PRIMARY KEY,
     applied_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tuning_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tuning_id       TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    strategy_id     TEXT NOT NULL,
+    tier            TEXT NOT NULL,
+    parameter_name  TEXT NOT NULL,
+    old_value       REAL NOT NULL,
+    new_value       REAL NOT NULL,
+    change_pct      REAL NOT NULL,
+    reason          TEXT NOT NULL,
+    eval_window     TEXT NOT NULL,
+    eval_pf         REAL,
+    eval_mdd        REAL,
+    eval_winrate    REAL,
+    validation_pf   REAL,
+    validation_mdd  REAL,
+    llm_provider    TEXT,
+    llm_model       TEXT,
+    llm_diagnosis   TEXT,
+    llm_confidence  TEXT,
+    status          TEXT NOT NULL DEFAULT 'applied',
+    rollback_at     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_th_strategy ON tuning_history(strategy_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_th_status ON tuning_history(status);
+
+CREATE TABLE IF NOT EXISTS tuning_report (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    tuning_id       TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    eval_window     TEXT NOT NULL,
+    strategy_id     TEXT NOT NULL,
+    regime          TEXT,
+    total_trades    INTEGER,
+    win_rate        REAL,
+    profit_factor   REAL,
+    max_drawdown    REAL,
+    avg_r_multiple  REAL,
+    signal_accuracy REAL,
+    recommendations TEXT,
+    applied_changes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tr_strategy ON tuning_report(strategy_id, created_at DESC);
 """
 
 
