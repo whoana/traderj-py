@@ -493,12 +493,18 @@ def _optuna_backtest_objective(
                 for k in tf_keys:
                     trial_params[k] = trial_params[k] / total
 
-        # Normalize score weights
-        sw_total = trial_params.get("score_w1", 0.33) + trial_params.get("score_w2", 0.33) + trial_params.get("score_w3", 0.33)
+        # Normalize score weights — force exact sum to 1.0
+        sw1 = trial_params.get("score_w1", 0.33)
+        sw2 = trial_params.get("score_w2", 0.33)
+        sw3 = trial_params.get("score_w3", 0.33)
+        sw_total = sw1 + sw2 + sw3
         if sw_total > 0:
-            for k in ("score_w1", "score_w2", "score_w3"):
-                if k in trial_params:
-                    trial_params[k] = trial_params[k] / sw_total
+            sw1 = sw1 / sw_total
+            sw2 = sw2 / sw_total
+            sw3 = 1.0 - sw1 - sw2  # force exact sum = 1.0
+            trial_params["score_w1"] = sw1
+            trial_params["score_w2"] = sw2
+            trial_params["score_w3"] = sw3
 
         # Build modified signal generator
         tf_map = {"tf_weight_1h": "1h", "tf_weight_4h": "4h", "tf_weight_1d": "1d"}
@@ -508,36 +514,35 @@ def _optuna_backtest_objective(
                 new_tf[tfk] = trial_params[pname]
         tf_weights = new_tf if new_tf else dict(preset.tf_weights)
 
-        sig = SignalGenerator(
-            strategy_id=preset.strategy_id,
-            scoring_mode=preset.scoring_mode,
-            entry_mode=preset.entry_mode,
-            score_weights=ScoreWeights(
-                w1=trial_params.get("score_w1", preset.score_weights.w1),
-                w2=trial_params.get("score_w2", preset.score_weights.w2),
-                w3=trial_params.get("score_w3", preset.score_weights.w3),
-            ),
-            tf_weights=tf_weights,
-            buy_threshold=trial_params.get("buy_threshold", preset.buy_threshold),
-            sell_threshold=trial_params.get("sell_threshold", preset.sell_threshold),
-            majority_min=preset.majority_min,
-            use_daily_gate=preset.use_daily_gate,
-            macro_weight=trial_params.get("macro_weight", preset.macro_weight),
-        )
-
-        needed_tfs = set(tf_weights.keys())
-        if preset.use_daily_gate:
-            needed_tfs.add("1d")
-        data = {tf: ohlcv[tf] for tf in needed_tfs if tf in ohlcv}
-        if not data:
-            return 0.0
-
-        ptf = _primary_tf(preset)
-        max_bars = _TF_BARS_PER_DAY.get(ptf, 24) * period_days
-        config = BacktestConfig(initial_balance_krw=initial_balance, fee_rate=0.0005, slippage_bps=5.0, max_bars=max_bars)
-        eng = BacktestEngine(signal_generator=sig, risk_config=preset.risk_config, config=config)
-
         try:
+            sig = SignalGenerator(
+                strategy_id=preset.strategy_id,
+                scoring_mode=preset.scoring_mode,
+                entry_mode=preset.entry_mode,
+                score_weights=ScoreWeights(
+                    w1=trial_params.get("score_w1", preset.score_weights.w1),
+                    w2=trial_params.get("score_w2", preset.score_weights.w2),
+                    w3=trial_params.get("score_w3", preset.score_weights.w3),
+                ),
+                tf_weights=tf_weights,
+                buy_threshold=trial_params.get("buy_threshold", preset.buy_threshold),
+                sell_threshold=trial_params.get("sell_threshold", preset.sell_threshold),
+                majority_min=preset.majority_min,
+                use_daily_gate=preset.use_daily_gate,
+                macro_weight=trial_params.get("macro_weight", preset.macro_weight),
+            )
+
+            needed_tfs = set(tf_weights.keys())
+            if preset.use_daily_gate:
+                needed_tfs.add("1d")
+            data = {tf: ohlcv[tf] for tf in needed_tfs if tf in ohlcv}
+            if not data:
+                return 0.0
+
+            ptf = _primary_tf(preset)
+            max_bars = _TF_BARS_PER_DAY.get(ptf, 24) * period_days
+            config = BacktestConfig(initial_balance_krw=initial_balance, fee_rate=0.0005, slippage_bps=5.0, max_bars=max_bars)
+            eng = BacktestEngine(signal_generator=sig, risk_config=preset.risk_config, config=config)
             result = eng.run(data, primary_tf=ptf, start_date=start_date, end_date=end_date)
         except Exception:
             return 0.0
