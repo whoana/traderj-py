@@ -30,6 +30,10 @@ BTC/KRW 자동매매 봇 — 문서 목록
 | [regime-strategy-process.md](design/regime-strategy-process.md) | 레짐 감지 → 전략 전환 → 포지션 관리 프로세스 흐름 |
 | [features/ai-tuner.design.md](design/features/ai-tuner.design.md) | AI Tuner 모듈 상세설계 (`engine/tuner/` 패키지) |
 | [features/dashboard-backtest.design.md](design/features/dashboard-backtest.design.md) | 대시보드 백테스트 기능 상세설계 (UI + API 연동) |
+| [profit-improvement-process.design.md](design/profit-improvement-process.design.md) | **수익률 개선 프로세스 최종 설계서** (6 Phase 구현 계획) |
+| [profit-improvement-summary.md](design/profit-improvement-summary.md) | 수익률 개선 프로세스 요약본 (빠른 참조용) |
+| [wizard-ui-design.md](design/wizard-ui-design.md) | 수익률 개선 위자드 UI 설계서 (풀스크린 오버레이, 6단계 스텝) |
+| [wizard-mockup.html](design/wizard-mockup.html) | 위자드 인터랙티브 목업 (브라우저에서 열기) |
 
 ## manual/
 

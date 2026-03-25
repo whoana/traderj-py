@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TraderJ - Wizard Mockup</title>
+  <style>
+    /* ========== RESET & BASE ========== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --border-hover: #475569;
+      --accent: #60a5fa;
+      --accent-dim: #1e3a5f;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #f59e0b;
+      --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
+
+    /* ========== ANIMATIONS ========== */
+    @keyframes slide-up {
+      0% { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scale-in {
+      0% { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(96,165,250,0); }
+      100% { box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+    }
+    @keyframes confetti {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(100px) rotate(720deg); }
+    }
+
+    /* ========== LANDING ========== */
+    .landing {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; text-align: center;
+    }
+    .landing h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .landing p { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+    .btn-launch {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+      box-shadow: 0 4px 12px rgba(96,165,250,0.2);
+    }
+    .btn-launch:hover { background: #4d94f7; box-shadow: 0 6px 20px rgba(96,165,250,0.3); }
+    .btn-launch:active { transform: scale(0.98); }
+
+    /* ========== OVERLAY ========== */
+    .overlay {
+      position: fixed; inset: 0; z-index: 50; display: block;
+    }
+    .backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .modal-wrap {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal {
+      position: relative; display: flex; flex-direction: column;
+      width: 100%; max-width: 640px;
+      max-height: min(680px, calc(100vh - 32px)); min-height: 480px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      animation: scale-in 0.3s ease-out;
+    }
+
+    /* ========== HEADER ========== */
+    .modal-header {
+      flex-shrink: 0; padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .header-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(96,165,250,0.15); display: flex; align-items: center; justify-content: center;
+    }
+    .header-icon svg { width: 16px; height: 16px; color: var(--accent); }
+    .header-title { font-size: 14px; font-weight: 600; }
+    .header-sub { font-size: 11px; color: var(--text-muted); }
+    .btn-close {
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* ========== STEP INDICATOR ========== */
+    .steps-bar { display: flex; align-items: center; gap: 4px; }
+    .step-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .step-btn[disabled] { cursor: default; }
+    .step-circle {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .step-circle.completed { background: var(--green); color: #fff; }
+    .step-circle.current {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 0 0 3px rgba(96,165,250,0.3);
+      animation: pulse-ring 2s infinite;
+    }
+    .step-circle.future { background: var(--bg-hover); color: var(--text-muted); }
+    .step-circle svg { width: 12px; height: 12px; }
+    .step-label {
+      font-size: 11px; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .step-label.current { color: var(--accent); }
+    .step-label.completed { color: var(--text-secondary); }
+    .step-label.future { color: var(--text-muted); }
+    .step-connector {
+      height: 2px; flex: 1; border-radius: 1px; margin: 0 4px;
+      transition: background 0.5s;
+    }
+    .step-connector.done { background: var(--green); }
+    .step-connector.pending { background: var(--bg-hover); }
+
+    /* ========== CONTENT ========== */
+    .modal-content {
+      flex: 1; overflow-y: auto; padding: 16px 20px;
+    }
+    .step-content { display: none; animation: slide-up 0.3s ease-out; }
+    .step-content.active { display: block; }
+
+    /* ========== FOOTER ========== */
+    .modal-footer {
+      flex-shrink: 0; padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .btn-prev, .btn-next {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      border: none; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-prev {
+      background: transparent; color: var(--text-secondary);
+    }
+    .btn-prev:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .btn-prev:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-next {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .btn-next:hover { background: #4d94f7; }
+    .btn-next:active { transform: scale(0.98); }
+    .btn-next.green { background: var(--green); }
+    .btn-next.green:hover { background: #15803d; }
+    .btn-next svg, .btn-prev svg { width: 14px; height: 14px; }
+
+    /* ========== COMMON UI ELEMENTS ========== */
+    .section-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .section-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+    .label-sm { font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .mono { font-family: var(--font-mono); }
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-accent { color: var(--accent); }
+    .text-yellow { color: var(--yellow); }
+    .text-muted { color: var(--text-muted); }
+    .text-secondary { color: var(--text-secondary); }
+    .fw-600 { font-weight: 600; }
+    .fs-10 { font-size: 10px; }
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .gap-4 { gap: 4px; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .mb-4 { margin-bottom: 4px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mt-4 { margin-top: 4px; }
+
+    /* ========== CARDS ========== */
+    .card {
+      border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+    }
+    .card-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    }
+    @media (min-width: 480px) {
+      .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    }
+    .card-accent {
+      border: 2px solid rgba(96,165,250,0.4);
+      background: rgba(96,165,250,0.05);
+      border-radius: 8px; padding: 12px;
+    }
+
+    /* ========== INSIGHT BOX ========== */
+    .insight-box {
+      border: 1px solid rgba(96,165,250,0.2);
+      background: rgba(96,165,250,0.05);
+      border-radius: 8px; padding: 12px;
+    }
+    .insight-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .insight-header svg { width: 14px; height: 14px; color: var(--accent); }
+    .insight-header span { font-size: 12px; font-weight: 500; color: var(--accent); }
+    .insight-list { list-style: none; }
+    .insight-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .insight-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0; margin-top: 6px;
+    }
+
+    /* ========== TABLE ========== */
+    .data-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+    .data-table th {
+      padding: 6px 12px; text-align: left; font-weight: 500;
+      color: var(--text-muted); border-bottom: 1px solid var(--border);
+    }
+    .data-table th.right { text-align: right; }
+    .data-table td { padding: 8px 12px; color: var(--text-secondary); }
+    .data-table td.right { text-align: right; }
+    .data-table tr:not(:last-child) td { border-bottom: 1px solid rgba(51,65,85,0.3); }
+    .data-table tr:hover td { background: rgba(96,165,250,0.03); }
+    .data-table .highlight td { background: rgba(96,165,250,0.05); }
+    .table-wrap {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+
+    /* ========== RADIO LIST ========== */
+    .radio-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border); margin-bottom: 6px;
+      transition: all 0.15s;
+    }
+    .radio-item:hover { border-color: var(--border-hover); background: rgba(51,65,85,0.3); }
+    .radio-item.selected {
+      border: 2px solid rgba(96,165,250,0.6);
+      background: rgba(96,165,250,0.05);
+    }
+    .radio-circle {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--text-muted); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .radio-item.selected .radio-circle {
+      border-color: var(--accent); background: var(--accent);
+    }
+    .radio-inner {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #fff; display: none;
+    }
+    .radio-item.selected .radio-inner { display: block; }
+    .radio-info { flex: 1; min-width: 0; }
+    .radio-title { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .radio-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+    .radio-date { font-size: 10px; color: var(--text-muted); }
+    .badge-done {
+      display: inline-block; font-size: 10px; font-weight: 500;
+      padding: 1px 6px; border-radius: 4px;
+      background: rgba(22,163,74,0.15); color: var(--green);
+    }
+
+    /* ========== REGIME BADGE ========== */
+    .regime { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+    .regime-green { background: rgba(22,163,74,0.15); color: var(--green); }
+    .regime-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .regime-red { background: rgba(220,38,38,0.15); color: var(--red); }
+    .regime-gray { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+
+    /* ========== PROGRESS BAR ========== */
+    .progress-wrap {
+      border: 1px solid rgba(96,165,250,0.3);
+      background: rgba(96,165,250,0.05);
+      border-radius: 8px; padding: 12px;
+    }
+    .progress-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .progress-top-left { display: flex; align-items: center; gap: 8px; }
+    .progress-icon {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(22,163,74,0.15); display: flex; align-items: center; justify-content: center;
+    }
+    .progress-icon svg { width: 12px; height: 12px; color: var(--green); }
+    .progress-bar { height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; border-radius: 3px; background: var(--green);
+      transition: width 0.5s ease-out;
+    }
+
+    /* ========== COMPARE GRID ========== */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .compare-col { border-radius: 8px; padding: 12px; }
+    .compare-baseline { border: 1px solid var(--border); }
+    .compare-optimized { border: 2px solid rgba(96,165,250,0.4); background: rgba(96,165,250,0.05); }
+    .compare-title { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .compare-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .compare-label { font-size: 12px; color: var(--text-secondary); }
+    .compare-value { font-size: 12px; font-family: var(--font-mono); }
+    .compare-diff { font-size: 10px; color: var(--green); margin-left: 6px; }
+
+    /* ========== DETAILS/SUMMARY ========== */
+    details { border: 1px solid var(--border); border-radius: 8px; }
+    details summary {
+      padding: 10px 12px; font-size: 12px; font-weight: 500;
+      color: var(--text-secondary); cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary .arrow { transition: transform 0.2s; color: var(--text-muted); }
+    details[open] summary .arrow { transform: rotate(180deg); }
+    details .detail-body {
+      border-top: 1px solid var(--border); padding: 10px 12px;
+    }
+    pre.code-block {
+      background: var(--bg-primary); border-radius: 6px; padding: 12px;
+      font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary);
+      overflow-x: auto; line-height: 1.6; white-space: pre;
+    }
+
+    /* ========== CHANGE LIST ========== */
+    .change-list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .change-list-header {
+      background: rgba(15,23,42,0.5); padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .change-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      border-bottom: 1px solid rgba(51,65,85,0.3);
+    }
+    .change-item:last-child { border-bottom: none; }
+    .change-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .change-icon svg { width: 14px; height: 14px; }
+    .change-icon.blue { background: rgba(96,165,250,0.1); }
+    .change-icon.blue svg { color: var(--accent); }
+    .change-icon.yellow { background: rgba(245,158,11,0.1); }
+    .change-icon.yellow svg { color: var(--yellow); }
+    .change-icon.green { background: rgba(22,163,74,0.1); }
+    .change-icon.green svg { color: var(--green); }
+    .change-body { flex: 1; }
+    .change-title { font-size: 12px; font-weight: 500; }
+    .change-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative; width: 36px; height: 20px; flex-shrink: 0;
+    }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 10px;
+      background: var(--bg-hover); cursor: pointer; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+      border-radius: 50%; background: #fff; transition: transform 0.2s;
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* ========== WARNING BOX ========== */
+    .warn-box {
+      border: 1px solid rgba(245,158,11,0.3);
+      background: rgba(245,158,11,0.05);
+      border-radius: 8px; padding: 12px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .warn-box svg { width: 16px; height: 16px; color: var(--yellow); flex-shrink: 0; margin-top: 2px; }
+    .warn-title { font-size: 12px; font-weight: 500; color: var(--yellow); }
+    .warn-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ========== VERIFY LIST ========== */
+    .verify-item {
+      display: flex; align-items: center; gap: 12px;
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px;
+    }
+    .verify-icon {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(22,163,74,0.15);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .verify-icon svg { width: 12px; height: 12px; color: var(--green); }
+    .verify-body { flex: 1; }
+    .verify-title { font-size: 12px; font-weight: 500; }
+    .verify-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .verify-badge { font-size: 10px; font-weight: 500; color: var(--green); }
+    .pass-banner {
+      border: 1px solid rgba(22,163,74,0.3);
+      background: rgba(22,163,74,0.05);
+      border-radius: 8px; padding: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pass-banner svg { width: 16px; height: 16px; color: var(--green); }
+    .pass-banner span { font-size: 12px; font-weight: 500; color: var(--green); }
+
+    /* ========== COMPLETION ========== */
+    .complete-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 24px 0; gap: 20px;
+    }
+    .complete-icon-wrap { position: relative; }
+    .complete-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(22,163,74,0.1);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .complete-icon svg { width: 32px; height: 32px; color: var(--green); }
+    .confetti {
+      position: absolute; border-radius: 50%; opacity: 0;
+      animation: confetti 1.5s ease-out forwards;
+    }
+    .complete-text { text-align: center; }
+    .complete-text h3 { font-size: 16px; font-weight: 600; }
+    .complete-text p { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    .summary-card {
+      width: 100%; max-width: 360px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(15,23,42,0.5); padding: 16px;
+    }
+    .summary-title {
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em; text-align: center; margin-bottom: 12px;
+    }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .summary-label { font-size: 12px; color: var(--text-secondary); }
+    .summary-value { font-size: 12px; }
+    .summary-divider { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px; }
+    .tip-box {
+      width: 100%; max-width: 360px;
+      border: 1px solid rgba(96,165,250,0.2);
+      background: rgba(96,165,250,0.05);
+      border-radius: 8px; padding: 12px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .tip-box svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+    .tip-box p { font-size: 11px; color: var(--text-secondary); }
+
+    /* ========== NEW BACKTEST BTN ========== */
+    .btn-new {
+      display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; border-radius: 8px; font-size: 12px; font-weight: 500;
+      color: var(--text-secondary); background: transparent;
+      border: 1px dashed var(--border-hover); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-new:hover {
+      border-color: var(--accent); background: rgba(96,165,250,0.05); color: var(--accent);
+    }
+    .btn-new svg { width: 16px; height: 16px; }
+
+    /* ========== DIVIDER ========== */
+    .divider {
+      position: relative; text-align: center; margin: 16px 0;
+      border-top: 1px solid var(--border);
+    }
+    .divider span {
+      position: relative; top: -9px;
+      background: var(--bg-card); padding: 0 12px;
+      font-size: 11px; color: var(--text-muted);
+    }
+
+    /* ========== EQUITY CHART ========== */
+    .chart-wrap {
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    }
+    .chart-area {
+      position: relative; height: 96px; width: 100%;
+      background: var(--bg-primary); border-radius: 4px; overflow: hidden;
+    }
+    .chart-area svg { width: 100%; height: 100%; }
+    .chart-label {
+      position: absolute; font-size: 9px; font-family: var(--font-mono); color: var(--text-muted);
+    }
+
+    /* ========== MOBILE DOTS ========== */
+    .mobile-dots { display: none; gap: 6px; }
+    @media (max-width: 479px) {
+      .mobile-dots { display: flex; }
+      .step-label { display: none; }
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 3px;
+    }
+    .dot.done { background: var(--green); }
+    .dot.current { background: var(--accent); width: 12px; }
+    .dot.future { background: var(--bg-hover); }
+
+    /* ========== SPACING UTIL ========== */
+    .space-y > *:not(:last-child) { margin-bottom: 16px; }
+    .space-y-sm > *:not(:last-child) { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- Overlay (auto-open) -->
+  <div class="overlay" id="overlay">
+    <div class="backdrop" id="backdrop"></div>
+    <div class="modal-wrap">
+      <div class="modal">
+
+        <!-- Header -->
+        <div class="modal-header">
+          <div class="header-top">
+            <div class="header-left">
+              <div class="header-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5"/>
+                </svg>
+              </div>
+              <div>
+                <div class="header-title">수익률 개선 위자드</div>
+                <div class="header-sub" id="step-subtitle">Step 1 of 6</div>
+              </div>
+            </div>
+            <button class="btn-close" id="btn-close" title="닫기">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="steps-bar" id="steps-bar"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="modal-content" id="wizard-content">
+
+          <!-- STEP 1 -->
+          <div class="step-content active" data-step="1">
+            <div class="space-y">
+              <div>
+                <div class="section-title">백테스트 선택</div>
+                <div class="section-desc">기존 백테스트 결과를 선택하거나 새로운 백테스트를 실행하세요.</div>
+              </div>
+              <div>
+                <div class="label-sm">최근 백테스트</div>
+                <div class="radio-item selected" data-radio="true">
+                  <div class="radio-circle"><div class="radio-inner"></div></div>
+                  <div class="radio-info">
+                    <div class="radio-title">전략 비교 <span class="badge-done">완료</span></div>
+                    <div class="radio-meta">
+                      <span>2026-02-24 ~ 2026-03-24</span>
+                      <span style="opacity:0.3">|</span>
+                      <span>Best: STR-003</span>
+                      <span class="mono text-green">+4.82%</span>
+                    </div>
+                  </div>
+                  <span class="radio-date">03-24</span>
+                </div>
+                <div class="radio-item" data-radio="true">
+                  <div class="radio-circle"><div class="radio-inner"></div></div>
+                  <div class="radio-info">
+                    <div class="radio-title">AI Regime <span class="badge-done">완료</span></div>
+                    <div class="radio-meta">
+                      <span>2026-01-01 ~ 2026-03-20</span>
+                      <span style="opacity:0.3">|</span>
+                      <span>AI Regime</span>
+                      <span class="mono text-green">+7.31%</span>
+                    </div>
+                  </div>
+                  <span class="radio-date">03-20</span>
+                </div>
+                <div class="radio-item" data-radio="true">
+                  <div class="radio-circle"><div class="radio-inner"></div></div>
+                  <div class="radio-info">
+                    <div class="radio-title">단일 전략 <span class="badge-done">완료</span></div>
+                    <div class="radio-meta">
+                      <span>2026-02-01 ~ 2026-03-15</span>
+                      <span style="opacity:0.3">|</span>
+                      <span>STR-001</span>
+                      <span class="mono text-red">-1.24%</span>
+                    </div>
+                  </div>
+                  <span class="radio-date">03-15</span>
+                </div>
+              </div>
+              <div class="divider"><span>또는</span></div>
+              <button class="btn-new">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                새 백테스트 실행
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="step-content" data-step="2">
+            <div class="space-y">
+              <div>
+                <div class="section-title">분석 결과</div>
+                <div class="section-desc">선택한 백테스트의 성과 분석과 개선 인사이트입니다.</div>
+              </div>
+              <div class="card-grid card-grid-4">
+                <div class="card">
+                  <div class="fs-10 text-muted">Best 전략</div>
+                  <div class="fs-14 fw-600 text-accent" style="margin-top:2px">STR-003</div>
+                  <div class="fs-10 text-muted">Hybrid Reversal</div>
+                </div>
+                <div class="card">
+                  <div class="fs-10 text-muted">Best 수익률</div>
+                  <div class="fs-14 fw-600 mono text-green" style="margin-top:2px">+4.82%</div>
+                  <div class="fs-10 text-muted">vs BTC +2.1%</div>
+                </div>
+                <div class="card">
+                  <div class="fs-10 text-muted">Worst 전략</div>
+                  <div class="fs-14 fw-600 text-red" style="margin-top:2px">STR-002</div>
+                  <div class="fs-10 text-muted mono">-3.15%</div>
+                </div>
+                <div class="card">
+                  <div class="fs-10 text-muted">시장 대비</div>
+                  <div class="fs-14 fw-600 text-green" style="margin-top:2px">5/7</div>
+                  <div class="fs-10 text-muted">전략 시장 상회</div>
+                </div>
+              </div>
+              <div class="insight-box">
+                <div class="insight-header">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                  </svg>
+                  <span>AI 인사이트</span>
+                </div>
+                <ul class="insight-list">
+                  <li><span class="insight-dot"></span><span>STR-003 (Hybrid Reversal)이 현재 시장 환경에서 가장 높은 리스크 대비 수익률을 보이고 있습니다.</span></li>
+                  <li><span class="insight-dot"></span><span>Trending 레짐에서 STR-001 대신 STR-009를 사용하면 +2.3% 추가 수익이 예상됩니다.</span></li>
+                  <li><span class="insight-dot"></span><span>STR-003의 buy_threshold를 0.55 → 0.48로 조정하면 진입 기회가 30% 증가합니다.</span></li>
+                </ul>
+              </div>
+              <div>
+                <div class="label-sm">레짐별 전략 제안</div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr><th>레짐</th><th>현재</th><th>제안</th><th class="right">개선</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td><span class="regime regime-green">Trending</span></td><td>STR-001</td><td class="text-accent fw-600">STR-009</td><td class="right mono text-green">+2.31%</td></tr>
+                      <tr><td><span class="regime regime-yellow">Mean-reverting</span></td><td>STR-001</td><td class="text-accent fw-600">STR-003</td><td class="right mono text-green">+1.85%</td></tr>
+                      <tr><td><span class="regime regime-red">High-vol</span></td><td>STR-001</td><td class="text-accent fw-600">STR-007</td><td class="right mono text-green">+3.12%</td></tr>
+                      <tr><td><span class="regime regime-gray">Low-vol</span></td><td>STR-001</td><td class="text-secondary">STR-001</td><td class="right mono text-muted">0.00%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <div class="label-sm">Equity Curve (STR-003)</div>
+                <div class="chart-area">
+                  <svg viewBox="0 0 400 100" preserveAspectRatio="none">
+                    <line x1="0" y1="25" x2="400" y2="25" stroke="#334155" stroke-width="0.5" stroke-dasharray="4 4"/>
+                    <line x1="0" y1="50" x2="400" y2="50" stroke="#334155" stroke-width="0.5" stroke-dasharray="4 4"/>
+                    <line x1="0" y1="75" x2="400" y2="75" stroke="#334155" stroke-width="0.5" stroke-dasharray="4 4"/>
+                    <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#60a5fa" stop-opacity="0.4"/><stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/></linearGradient></defs>
+                    <path d="M0,70 L20,68 L40,65 L60,60 L80,55 L100,58 L120,52 L140,48 L160,45 L180,42 L200,40 L220,35 L240,38 L260,32 L280,28 L300,25 L320,22 L340,20 L360,18 L380,15 L400,12 L400,100 L0,100 Z" fill="url(#g1)" opacity="0.3"/>
+                    <path d="M0,70 L20,68 L40,65 L60,60 L80,55 L100,58 L120,52 L140,48 L160,45 L180,42 L200,40 L220,35 L240,38 L260,32 L280,28 L300,25 L320,22 L340,20 L360,18 L380,15 L400,12" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="chart-label" style="left:8px;top:4px">+4.82%</span>
+                  <span class="chart-label" style="left:8px;bottom:4px">02-24</span>
+                  <span class="chart-label" style="right:8px;bottom:4px">03-24</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="step-content" data-step="3">
+            <div class="space-y">
+              <div>
+                <div class="section-title">파라미터 최적화</div>
+                <div class="section-desc">Optuna를 사용하여 STR-003의 파라미터를 최적화합니다.</div>
+              </div>
+              <div class="progress-wrap">
+                <div class="progress-top">
+                  <div class="progress-top-left">
+                    <div class="progress-icon">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <span class="fs-12 fw-600">최적화 완료</span>
+                  </div>
+                  <span class="fs-10 mono text-muted">30 trials / 42s</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+              </div>
+              <div class="compare-grid">
+                <div class="compare-col compare-baseline">
+                  <div class="compare-title text-muted">현재 (Baseline)</div>
+                  <div class="compare-row"><span class="compare-label">수익률</span><span class="compare-value fw-600">+4.82%</span></div>
+                  <div class="compare-row"><span class="compare-label">승률</span><span class="compare-value">58.3%</span></div>
+                  <div class="compare-row"><span class="compare-label">MDD</span><span class="compare-value">-5.21%</span></div>
+                  <div class="compare-row"><span class="compare-label">거래 수</span><span class="compare-value">24</span></div>
+                  <div class="compare-row"><span class="compare-label">Profit Factor</span><span class="compare-value">1.42</span></div>
+                </div>
+                <div class="compare-col compare-optimized">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div class="compare-title text-accent">최적화 #1</div>
+                    <span style="font-size:10px;font-weight:500;color:var(--accent);background:rgba(96,165,250,0.15);padding:1px 6px;border-radius:4px">Best</span>
+                  </div>
+                  <div class="compare-row"><span class="compare-label">수익률</span><span><span class="compare-value fw-600 text-accent">+7.15%</span><span class="compare-diff">+2.33</span></span></div>
+                  <div class="compare-row"><span class="compare-label">승률</span><span><span class="compare-value">63.0%</span><span class="compare-diff">+4.7</span></span></div>
+                  <div class="compare-row"><span class="compare-label">MDD</span><span><span class="compare-value">-4.08%</span><span class="compare-diff">+1.13</span></span></div>
+                  <div class="compare-row"><span class="compare-label">거래 수</span><span class="compare-value">31</span></div>
+                  <div class="compare-row"><span class="compare-label">Profit Factor</span><span><span class="compare-value">1.78</span><span class="compare-diff">+0.36</span></span></div>
+                </div>
+              </div>
+              <div>
+                <div class="label-sm">Top 5 후보</div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead><tr><th>#</th><th class="right">수익률</th><th class="right">승률</th><th class="right">MDD</th><th class="right">거래</th><th class="right">Score</th></tr></thead>
+                    <tbody>
+                      <tr class="highlight"><td class="text-accent fw-600">1</td><td class="right mono fw-600 text-green">+7.15%</td><td class="right mono">63.0%</td><td class="right mono">-4.08%</td><td class="right">31</td><td class="right mono text-accent fw-600">0.892</td></tr>
+                      <tr><td class="text-secondary">2</td><td class="right mono text-green">+6.87%</td><td class="right mono">61.5%</td><td class="right mono">-4.52%</td><td class="right">28</td><td class="right mono">0.854</td></tr>
+                      <tr><td class="text-secondary">3</td><td class="right mono text-green">+6.41%</td><td class="right mono">60.0%</td><td class="right mono">-3.95%</td><td class="right">26</td><td class="right mono">0.831</td></tr>
+                      <tr><td class="text-secondary">4</td><td class="right mono text-green">+5.93%</td><td class="right mono">59.2%</td><td class="right mono">-5.10%</td><td class="right">33</td><td class="right mono">0.798</td></tr>
+                      <tr><td class="text-secondary">5</td><td class="right mono text-green">+5.67%</td><td class="right mono">57.8%</td><td class="right mono">-4.88%</td><td class="right">29</td><td class="right mono">0.776</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <details>
+                <summary>
+                  <span>최적 파라미터 상세</span>
+                  <span class="arrow">&#9660;</span>
+                </summary>
+                <div class="detail-body">
+                  <pre class="code-block">{
+  "buy_threshold": 0.48,
+  "sell_threshold": 0.62,
+  "macro_weight": 0.35,
+  "timeframe_weights": {
+    "1h": 0.25,
+    "4h": 0.45,
+    "1d": 0.30
+  },
+  "daily_gate_enabled": true,
+  "position_size_pct": 0.15
+}</pre>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="step-content" data-step="4">
+            <div class="space-y">
+              <div>
+                <div class="section-title">최적화 적용</div>
+                <div class="section-desc">최적화된 파라미터를 엔진에 적용합니다. 변경 사항을 검토하세요.</div>
+              </div>
+              <div class="change-list">
+                <div class="change-list-header">
+                  <div class="label-sm" style="margin-bottom:0">적용할 변경 사항</div>
+                </div>
+                <div class="change-item">
+                  <div class="change-icon blue">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                  </div>
+                  <div class="change-body">
+                    <div class="change-title">전략 전환</div>
+                    <div class="change-desc">STR-001 (Conservative Trend) → <span class="text-accent">STR-003 (Hybrid Reversal)</span></div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+                </div>
+                <div class="change-item">
+                  <div class="change-icon yellow">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                  </div>
+                  <div class="change-body">
+                    <div class="change-title">파라미터 최적화</div>
+                    <div class="change-desc">buy_threshold: 0.55→0.48, sell_threshold: 0.60→0.62, macro_weight: 0.30→0.35</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+                </div>
+                <div class="change-item">
+                  <div class="change-icon green">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </div>
+                  <div class="change-body">
+                    <div class="change-title">레짐 매핑 업데이트</div>
+                    <div class="change-desc">3개 레짐 전략 재매핑 (Trending, Mean-reverting, High-vol)</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label>
+                </div>
+              </div>
+              <div class="warn-box">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                  <div class="warn-title">라이브 엔진에 즉시 반영됩니다</div>
+                  <div class="warn-desc">현재 열린 포지션이 없는 것을 확인했습니다. 안전하게 변경할 수 있습니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5 -->
+          <div class="step-content" data-step="5">
+            <div class="space-y">
+              <div>
+                <div class="section-title">검증</div>
+                <div class="section-desc">적용된 변경 사항이 정상 동작하는지 확인합니다.</div>
+              </div>
+              <div class="space-y-sm">
+                <div class="verify-item">
+                  <div class="verify-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                  <div class="verify-body">
+                    <div class="verify-title">전략 전환 확인</div>
+                    <div class="verify-desc">현재 활성 전략: STR-003 (Hybrid Reversal)</div>
+                  </div>
+                  <span class="verify-badge">Pass</span>
+                </div>
+                <div class="verify-item">
+                  <div class="verify-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                  <div class="verify-body">
+                    <div class="verify-title">파라미터 적용 확인</div>
+                    <div class="verify-desc">buy_threshold=0.48, sell_threshold=0.62, macro_weight=0.35</div>
+                  </div>
+                  <span class="verify-badge">Pass</span>
+                </div>
+                <div class="verify-item">
+                  <div class="verify-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                  <div class="verify-body">
+                    <div class="verify-title">레짐 매핑 확인</div>
+                    <div class="verify-desc">3개 레짐 재매핑 완료</div>
+                  </div>
+                  <span class="verify-badge">Pass</span>
+                </div>
+                <div class="verify-item">
+                  <div class="verify-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                  <div class="verify-body">
+                    <div class="verify-title">엔진 상태 확인</div>
+                    <div class="verify-desc">TradingLoop 정상 동작 중, 에러 없음</div>
+                  </div>
+                  <span class="verify-badge">Pass</span>
+                </div>
+                <div class="verify-item">
+                  <div class="verify-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                  <div class="verify-body">
+                    <div class="verify-title">시그널 생성 테스트</div>
+                    <div class="verify-desc">최신 시그널 정상 생성 (score: 0.42, action: HOLD)</div>
+                  </div>
+                  <span class="verify-badge">Pass</span>
+                </div>
+              </div>
+              <div class="pass-banner">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>모든 검증 항목 통과 (5/5)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 6 -->
+          <div class="step-content" data-step="6">
+            <div class="complete-wrap">
+              <div class="complete-icon-wrap">
+                <div class="complete-icon">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div class="confetti" style="width:8px;height:8px;background:var(--accent);top:-8px;left:-8px;animation-delay:0.2s"></div>
+                <div class="confetti" style="width:6px;height:6px;background:var(--green);top:-4px;right:0;animation-delay:0.4s"></div>
+                <div class="confetti" style="width:8px;height:8px;background:var(--yellow);top:0;right:-12px;animation-delay:0.1s"></div>
+                <div class="confetti" style="width:6px;height:6px;background:var(--accent);top:-12px;left:16px;animation-delay:0.6s"></div>
+              </div>
+              <div class="complete-text">
+                <h3>수익률 개선 완료!</h3>
+                <p>모든 최적화가 성공적으로 적용되었습니다.</p>
+              </div>
+              <div class="summary-card">
+                <div class="summary-title">적용 요약</div>
+                <div class="summary-row"><span class="summary-label">활성 전략</span><span class="summary-value text-accent fw-600 fs-12">STR-003 (Hybrid Reversal)</span></div>
+                <div class="summary-row"><span class="summary-label">예상 수익률 개선</span><span class="summary-value mono fw-600 text-green fs-12">+2.33%</span></div>
+                <div class="summary-row"><span class="summary-label">예상 승률 개선</span><span class="summary-value mono text-green fs-12">+4.7%p</span></div>
+                <div class="summary-row"><span class="summary-label">예상 MDD 개선</span><span class="summary-value mono text-green fs-12">+1.13%p</span></div>
+                <div class="summary-row"><span class="summary-label">레짐 매핑</span><span class="summary-value fs-12">3개 레짐 재매핑</span></div>
+                <div class="summary-row"><span class="summary-label">파라미터 변경</span><span class="summary-value fs-12">3개 파라미터 최적화</span></div>
+                <div class="summary-divider">
+                  <div class="summary-row" style="margin-bottom:0"><span class="summary-label fw-600">검증 결과</span><span class="summary-value fw-600 text-green fs-12">5/5 통과</span></div>
+                </div>
+              </div>
+              <div class="tip-box">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p>1~2주 후 다시 백테스트를 실행하여 개선 효과를 확인하세요. 시장 환경이 바뀌면 재튜닝이 필요할 수 있습니다.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button class="btn-prev" id="btn-prev">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            이전
+          </button>
+          <div class="mobile-dots" id="mobile-dots"></div>
+          <button class="btn-next" id="btn-next">
+            다음
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STEPS = [
+      { label: '백테스트', short: 'BT' },
+      { label: '분석', short: 'An' },
+      { label: '최적화', short: 'Opt' },
+      { label: '적용', short: 'App' },
+      { label: '검증', short: 'Ver' },
+      { label: '완료', short: 'Done' },
+    ];
+    let currentStep = 1;
+
+    function openWizard() {
+      currentStep = 1;
+      renderWizard();
+    }
+    function closeWizard() {
+      currentStep = 1;
+      renderWizard();
+    }
+    function nextStep() {
+      if (currentStep < 6) { currentStep++; renderWizard(); }
+      else closeWizard();
+    }
+    function prevStep() {
+      if (currentStep > 1) { currentStep--; renderWizard(); }
+    }
+    function goToStep(s) {
+      if (s <= currentStep) { currentStep = s; renderWizard(); }
+    }
+    function selectRadio(el) {
+      document.querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function renderWizard() {
+      renderSteps();
+      renderContent();
+      renderFooter();
+      renderDots();
+      document.getElementById('step-subtitle').textContent = 'Step ' + currentStep + ' of 6';
+    }
+
+    function renderSteps() {
+      const bar = document.getElementById('steps-bar');
+      bar.innerHTML = '';
+      STEPS.forEach((s, i) => {
+        const n = i + 1;
+        const done = n < currentStep, cur = n === currentStep, fut = n > currentStep;
+        const btn = document.createElement('button');
+        btn.className = 'step-btn';
+        btn.disabled = fut;
+        btn.onclick = () => goToStep(n);
+
+        const circle = document.createElement('div');
+        circle.className = 'step-circle ' + (done ? 'completed' : cur ? 'current' : 'future');
+        if (done) {
+          circle.innerHTML = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+        } else {
+          circle.textContent = n;
+        }
+
+        const label = document.createElement('span');
+        label.className = 'step-label ' + (done ? 'completed' : cur ? 'current' : 'future');
+        label.textContent = s.label;
+
+        btn.appendChild(circle);
+        btn.appendChild(label);
+        bar.appendChild(btn);
+
+        if (i < STEPS.length - 1) {
+          const conn = document.createElement('div');
+          conn.className = 'step-connector ' + (n < currentStep ? 'done' : 'pending');
+          bar.appendChild(conn);
+        }
+      });
+    }
+
+    function renderContent() {
+      document.querySelectorAll('.step-content').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.step) === currentStep);
+      });
+    }
+
+    function renderFooter() {
+      const prev = document.getElementById('btn-prev');
+      const next = document.getElementById('btn-next');
+      prev.disabled = currentStep === 1;
+      prev.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+
+      if (currentStep === 6) {
+        next.innerHTML = '완료 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+        next.className = 'btn-next green';
+      } else if (currentStep === 4) {
+        next.innerHTML = '적용하기 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+        next.className = 'btn-next';
+      } else {
+        next.innerHTML = '다음 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+        next.className = 'btn-next';
+      }
+    }
+
+    function renderDots() {
+      const c = document.getElementById('mobile-dots');
+      c.innerHTML = '';
+      for (let i = 1; i <= 6; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot ' + (i < currentStep ? 'done' : i === currentStep ? 'current' : 'future');
+        c.appendChild(d);
+      }
+    }
+
+    // Event listeners (no inline onclick - for max browser compat)
+    document.getElementById('btn-next').addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation(); nextStep();
+    });
+    document.getElementById('btn-prev').addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation(); prevStep();
+    });
+    document.getElementById('btn-close').addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation(); closeWizard();
+    });
+    document.getElementById('backdrop').addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation(); closeWizard();
+    });
+
+    // Radio item selection
+    document.querySelectorAll('[data-radio]').forEach(function(el) {
+      el.addEventListener('click', function() { selectRadio(el); });
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeWizard();
+      if (e.key === 'ArrowRight' || e.key === 'Enter') nextStep();
+      if (e.key === 'ArrowLeft') prevStep();
+    });
+
+    // Auto-render on load
+    renderWizard();
+  </script>
+</body>
+</html>
