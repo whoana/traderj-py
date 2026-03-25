@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 MAX_HISTORY = 20
 JOB_TIMEOUT_SEC = 600
+OPTIMIZE_TIMEOUT_SEC = 1800  # 30 min for Optuna optimization
 
 
 @dataclass
@@ -123,11 +124,13 @@ class BacktestJobManager:
         job.started_at = datetime.now(tz=timezone.utc)
 
         try:
-            result = await asyncio.wait_for(runner(job, update_progress), timeout=JOB_TIMEOUT_SEC)
+            timeout = OPTIMIZE_TIMEOUT_SEC if job.mode == BacktestMode.OPTIMIZE else JOB_TIMEOUT_SEC
+            result = await asyncio.wait_for(runner(job, update_progress), timeout=timeout)
             job.result = result
             job.status = BacktestJobStatus.DONE
         except asyncio.TimeoutError:
-            job.error = f"Timeout after {JOB_TIMEOUT_SEC}s"
+            timeout = OPTIMIZE_TIMEOUT_SEC if job.mode == BacktestMode.OPTIMIZE else JOB_TIMEOUT_SEC
+            job.error = f"Timeout after {timeout}s"
             job.status = BacktestJobStatus.FAILED
         except asyncio.CancelledError:
             job.status = BacktestJobStatus.CANCELLED

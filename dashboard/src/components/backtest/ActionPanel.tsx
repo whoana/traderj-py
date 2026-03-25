@@ -185,7 +185,7 @@ export default function ActionPanel({ jobId, startDate, endDate }: Props) {
 
       // Poll for completion
       let attempts = 0;
-      const maxAttempts = 120; // 2 minutes
+      const maxAttempts = 600; // 20 minutes (optimize is CPU-heavy)
       while (attempts < maxAttempts) {
         await new Promise((r) => setTimeout(r, 2000));
         attempts++;
