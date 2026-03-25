@@ -547,10 +547,13 @@ def _optuna_backtest_objective(
         trades = result.metrics.get("total_trades", 0)
         ret = result.metrics.get("total_return_pct", 0.0)
 
+        sharpe = result.metrics.get("sharpe_ratio", 0.0)
+
         trial.set_user_attr("mdd", mdd if mdd else 0.0)
         trial.set_user_attr("win_rate", result.metrics.get("win_rate", 0.0))
         trial.set_user_attr("trades", trades)
         trial.set_user_attr("return_pct", ret if ret else 0.0)
+        trial.set_user_attr("sharpe_ratio", sharpe if sharpe else 0.0)
 
         # Penalize extreme MDD or no trades
         if mdd and mdd > 15.0:
@@ -558,8 +561,13 @@ def _optuna_backtest_objective(
         if not trades or trades < 2:
             return 0.0
 
-        # Maximize: return_pct as primary, profit_factor as tiebreaker
-        score = (ret if ret else 0.0) + (pf if pf and pf != float("inf") else 0.0) * 0.1
+        # Risk-adjusted composite score
+        # sharpe(40%) + return(30%) + profit_factor(20%) + inverse_mdd(10%)
+        s_sharpe = (sharpe if sharpe else 0.0) * 0.4
+        s_return = (ret if ret else 0.0) * 0.3
+        s_pf = (pf if pf and pf != float("inf") else 0.0) * 0.2
+        s_mdd = (1.0 / max(abs(mdd), 0.01)) * 0.1 if mdd else 0.0
+        score = s_sharpe + s_return + s_pf + s_mdd
         return score
 
     return objective
@@ -604,6 +612,7 @@ def _run_optuna_optimize(
             "rank": i + 1,
             "params": display_params,
             "return_pct": round(trial.user_attrs.get("return_pct", 0.0), 2),
+            "sharpe_ratio": round(trial.user_attrs.get("sharpe_ratio", 0.0), 2),
             "win_rate": round(trial.user_attrs.get("win_rate", 0.0), 4),
             "mdd": round(trial.user_attrs.get("mdd", 0.0), 2),
             "trades": trial.user_attrs.get("trades", 0),
@@ -615,6 +624,7 @@ def _run_optuna_optimize(
         "strategy_name": preset.name,
         "baseline": {
             "return_pct": baseline_metrics.get("total_return_pct"),
+            "sharpe_ratio": baseline_metrics.get("sharpe_ratio"),
             "win_rate": baseline_metrics.get("win_rate"),
             "mdd": baseline_metrics.get("max_drawdown_pct"),
             "trades": baseline_metrics.get("total_trades"),
@@ -635,8 +645,10 @@ async def run_optimize(
     db: aiosqlite.Connection,
 ) -> dict[str, Any]:
     """Run Optuna parameter optimization for a single strategy."""
+    from engine.strategy.presets import load_preset
+
     strategy_id = job.config["strategy_id"]
-    preset = STRATEGY_PRESETS.get(strategy_id)
+    preset = load_preset(strategy_id)
     if preset is None:
         raise ValueError(f"Unknown strategy: {strategy_id}")
 

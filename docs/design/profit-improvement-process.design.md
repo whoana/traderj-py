@@ -236,9 +236,9 @@ def objective(trial):
 최적화에 사용되지 않은 기간(OOS)으로 백테스트를 재실행하여 과적합을 검증.
 
 **구현 위치:**
-- `engine/backtest/runners.py` — `run_validation()` 함수 추가
-- Walk-forward 3-window 로직
-- 기준 판정 (Pass/Warn/Fail)
+- `engine/backtest/validators.py` — `run_gate1_validation()` 함수 (별도 모듈로 분리)
+- Walk-forward 동적 윈도우 (WalkForwardEngine 활용, 데이터 길이에 적응)
+- 기준 판정: critical(return, MDD) 실패 시 fail, 비critical만 실패 시 warn
 
 ### 4.4 레짐 전환 포지션 처리 세분화 (P1)
 

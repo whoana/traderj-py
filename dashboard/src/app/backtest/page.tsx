@@ -9,6 +9,9 @@ const EquityCurveChart = dynamic(
 );
 import ActionPanel from "@/components/backtest/ActionPanel";
 import BacktestHistory from "@/components/backtest/BacktestHistory";
+import { WizardProvider } from "@/contexts/WizardContext";
+import { WizardOverlay } from "@/components/backtest/wizard/WizardOverlay";
+import { WizardLauncher } from "@/components/backtest/wizard/WizardLauncher";
 
 type Mode = "compare" | "single" | "ai_regime";
 type JobStatus = "idle" | "pending" | "fetching" | "running" | "done" | "failed" | "cancelled";
@@ -192,8 +195,13 @@ export default function BacktestPage() {
   const periodDays = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1);
 
   return (
+    <WizardProvider>
     <div className="mx-auto max-w-5xl space-y-4 p-3 sm:p-6">
-      <h1 className="text-lg font-bold text-text-primary sm:text-xl">Backtest</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold text-text-primary sm:text-xl">Backtest</h1>
+        <div className="w-48"><WizardLauncher /></div>
+      </div>
+      <WizardOverlay />
 
       {/* ── Settings Card ── */}
       <div className="rounded-lg border border-border bg-bg-card p-4 space-y-4">
@@ -329,6 +337,7 @@ export default function BacktestPage() {
         </div>
       )}
     </div>
+    </WizardProvider>
   );
 }
 

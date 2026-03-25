@@ -7,11 +7,14 @@ STR-007/008 are bear market defensive presets with strict entry conditions.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, replace
 
 from engine.strategy.risk import RiskConfig
 from engine.strategy.scoring import HYBRID_WEIGHTS, TREND_FOLLOW_WEIGHTS, ScoreWeights
 from shared.enums import EntryMode, ScoringMode
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -242,3 +245,62 @@ STRATEGY_PRESETS: dict[str, StrategyPreset] = {
     "STR-009": STR_009,
     "STR-010": STR_010,
 }
+
+# --- Flat JSON key → StrategyPreset field mapping ---
+# Tier-1 tunable parameters use flat keys in preset_overrides.json.
+# This maps them to the nested dataclass structure.
+_DIRECT_FIELDS = {"buy_threshold", "sell_threshold", "macro_weight"}
+_TF_WEIGHT_KEYS = {"tf_weight_1h": "1h", "tf_weight_4h": "4h", "tf_weight_1d": "1d"}
+_SCORE_WEIGHT_KEYS = {"score_w1": "w1", "score_w2": "w2", "score_w3": "w3"}
+
+
+def _apply_overrides(preset: StrategyPreset, overrides: dict[str, float]) -> StrategyPreset:
+    """Apply flat override params to a frozen StrategyPreset, returning a new instance."""
+    if not overrides:
+        return preset
+
+    kwargs: dict[str, object] = {}
+
+    # Direct scalar fields
+    for key in _DIRECT_FIELDS:
+        if key in overrides:
+            kwargs[key] = overrides[key]
+
+    # tf_weights: merge into existing dict
+    tf_updates = {tf: overrides[k] for k, tf in _TF_WEIGHT_KEYS.items() if k in overrides}
+    if tf_updates:
+        kwargs["tf_weights"] = {**preset.tf_weights, **tf_updates}
+
+    # score_weights: rebuild ScoreWeights
+    sw_updates = {attr: overrides[k] for k, attr in _SCORE_WEIGHT_KEYS.items() if k in overrides}
+    if sw_updates:
+        kwargs["score_weights"] = ScoreWeights(
+            w1=sw_updates.get("w1", preset.score_weights.w1),
+            w2=sw_updates.get("w2", preset.score_weights.w2),
+            w3=sw_updates.get("w3", preset.score_weights.w3),
+        )
+
+    if not kwargs:
+        return preset
+    return replace(preset, **kwargs)
+
+
+def load_preset(strategy_id: str, data_dir: str | None = None) -> StrategyPreset:
+    """Load a strategy preset with JSON overrides applied.
+
+    1. Look up base preset from STRATEGY_PRESETS (falls back to default).
+    2. Load sparse overrides from /data/preset_overrides.json.
+    3. Return merged preset (new frozen instance).
+    """
+    from engine.strategy.preset_override import get_preset_overrides
+
+    base = STRATEGY_PRESETS.get(strategy_id)
+    if base is None:
+        logger.warning("Unknown strategy_id %r, using default preset", strategy_id)
+        base = DEFAULT_PRESET
+
+    overrides = get_preset_overrides(strategy_id, data_dir)
+    if overrides:
+        logger.info("Applying %d override(s) for %s: %s", len(overrides), strategy_id, overrides)
+        return _apply_overrides(base, overrides)
+    return base

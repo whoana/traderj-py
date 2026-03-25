@@ -17,17 +17,21 @@ from engine.strategy.presets import (
     STR_006,
     STR_007,
     STR_008,
+    STR_009,
+    STR_010,
     STRATEGY_PRESETS,
     StrategyPreset,
+    _apply_overrides,
+    load_preset,
 )
 from shared.enums import EntryMode, ScoringMode
 
-ALL_PRESETS = [DEFAULT_PRESET, STR_001, STR_002, STR_003, STR_004, STR_005, STR_006, STR_007, STR_008]
+ALL_PRESETS = [DEFAULT_PRESET, STR_001, STR_002, STR_003, STR_004, STR_005, STR_006, STR_007, STR_008, STR_009, STR_010]
 
 
 class TestPresetRegistry:
-    def test_registry_has_9_presets(self):
-        assert len(STRATEGY_PRESETS) == 9
+    def test_registry_has_11_presets(self):
+        assert len(STRATEGY_PRESETS) == 11
 
     def test_unique_strategy_ids(self):
         ids = [p.strategy_id for p in ALL_PRESETS]
@@ -136,3 +140,82 @@ class TestSpecificPresets:
         """Bear presets should have higher buy thresholds than bull."""
         assert STR_007.buy_threshold > STR_002.buy_threshold
         assert STR_008.buy_threshold > STR_001.buy_threshold
+
+    def test_str009_bull_rider(self):
+        assert STR_009.scoring_mode == ScoringMode.TREND_FOLLOW
+        assert STR_009.risk_config is not None
+        assert STR_009.risk_config.stop_loss_pct > STR_001.risk_config.stop_loss_pct if STR_001.risk_config else True
+
+    def test_str010_swing_trend(self):
+        assert STR_010.scoring_mode == ScoringMode.TREND_FOLLOW
+        assert STR_010.risk_config is not None
+        assert "1d" in STR_010.tf_weights
+
+
+class TestApplyOverrides:
+    def test_no_overrides_returns_same(self):
+        result = _apply_overrides(STR_001, {})
+        assert result is STR_001
+
+    def test_override_buy_threshold(self):
+        result = _apply_overrides(STR_001, {"buy_threshold": 0.20})
+        assert result.buy_threshold == 0.20
+        assert result.sell_threshold == STR_001.sell_threshold  # unchanged
+
+    def test_override_tf_weights(self):
+        result = _apply_overrides(STR_001, {"tf_weight_1h": 0.5, "tf_weight_4h": 0.3})
+        assert result.tf_weights["1h"] == 0.5
+        assert result.tf_weights["4h"] == 0.3
+        assert result.tf_weights.get("1d") == STR_001.tf_weights.get("1d")
+
+    def test_override_score_weights(self):
+        result = _apply_overrides(STR_001, {"score_w1": 0.6, "score_w2": 0.3, "score_w3": 0.1})
+        assert result.score_weights.w1 == 0.6
+        assert result.score_weights.w2 == 0.3
+        assert result.score_weights.w3 == 0.1
+
+    def test_override_macro_weight(self):
+        result = _apply_overrides(STR_001, {"macro_weight": 0.5})
+        assert result.macro_weight == 0.5
+
+    def test_mixed_overrides(self):
+        result = _apply_overrides(STR_003, {
+            "buy_threshold": 0.15,
+            "tf_weight_4h": 0.6,
+            "score_w1": 0.5,
+            "score_w2": 0.3,
+            "score_w3": 0.2,
+        })
+        assert result.buy_threshold == 0.15
+        assert result.tf_weights["4h"] == 0.6
+        assert result.score_weights.w1 == 0.5
+
+    def test_frozen_original_unchanged(self):
+        _apply_overrides(STR_001, {"buy_threshold": 0.99})
+        assert STR_001.buy_threshold == 0.10  # original unchanged
+
+
+class TestLoadPreset:
+    def test_load_known_preset_no_override(self, tmp_path):
+        result = load_preset("STR-001", data_dir=str(tmp_path))
+        assert result.strategy_id == "STR-001"
+        assert result.buy_threshold == STR_001.buy_threshold
+
+    def test_load_unknown_falls_back_to_default(self, tmp_path):
+        result = load_preset("UNKNOWN-999", data_dir=str(tmp_path))
+        assert result.strategy_id == DEFAULT_PRESET.strategy_id
+
+    def test_load_with_override_file(self, tmp_path):
+        import json
+        override_file = tmp_path / "preset_overrides.json"
+        override_file.write_text(json.dumps({
+            "version": 1,
+            "presets": {
+                "STR-001": {"buy_threshold": 0.25, "macro_weight": 0.30}
+            },
+            "regime_map": {},
+        }))
+        result = load_preset("STR-001", data_dir=str(tmp_path))
+        assert result.buy_threshold == 0.25
+        assert result.macro_weight == 0.30
+        assert result.sell_threshold == STR_001.sell_threshold  # unchanged
