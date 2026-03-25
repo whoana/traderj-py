@@ -15,6 +15,11 @@ export function StepOptimize() {
       const opt = (result.optimization ?? result) as Record<string, unknown>;
       const candidates = (opt.candidates ?? []) as Record<string, unknown>[];
       const baseline = (opt.baseline ?? {}) as Record<string, unknown>;
+      if (candidates.length === 0) {
+        dispatch({ type: "SET_ERROR", error: "최적화 완료되었으나 유효한 후보가 없습니다. 기간이나 전략을 변경해 보세요." });
+        dispatch({ type: "SET_LOADING", loading: false });
+        return;
+      }
       dispatch({ type: "SET_CANDIDATES", candidates, baseline });
       dispatch({ type: "SET_LOADING", loading: false });
     },

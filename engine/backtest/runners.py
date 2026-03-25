@@ -596,7 +596,7 @@ def _run_optuna_optimize(
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
 
     # 3. Extract top 3 candidates
-    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE and t.value is not None and t.value > 0]
+    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE and t.value is not None]
     completed.sort(key=lambda t: t.value, reverse=True)
     top = completed[:3]
 
