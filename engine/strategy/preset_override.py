@@ -43,6 +43,32 @@ def load_overrides(data_dir: str | None = None) -> dict[str, Any]:
         return {"version": 1, "presets": {}, "regime_map": {}}
 
 
+def _normalize_weights(params: dict[str, float]) -> dict[str, float]:
+    """Normalize score_w and tf_weight groups to sum to 1.0 before saving."""
+    result = dict(params)
+
+    # Normalize score weights
+    sw_keys = [k for k in result if k.startswith("score_w")]
+    if sw_keys:
+        total = sum(result[k] for k in sw_keys)
+        if total > 0:
+            for k in sw_keys:
+                result[k] = result[k] / total
+            # Force exact sum via last key
+            if len(sw_keys) >= 2:
+                result[sw_keys[-1]] = 1.0 - sum(result[k] for k in sw_keys[:-1])
+
+    # Normalize tf weights
+    tf_keys = [k for k in result if k.startswith("tf_weight_")]
+    if tf_keys:
+        total = sum(result[k] for k in tf_keys)
+        if total > 0:
+            for k in tf_keys:
+                result[k] = result[k] / total
+
+    return result
+
+
 def save_override(
     strategy_id: str,
     params: dict[str, float],
@@ -52,6 +78,7 @@ def save_override(
 
     Merges into existing overrides. Returns the path written.
     """
+    params = _normalize_weights(params)
     data = load_overrides(data_dir)
     existing = data.get("presets", {}).get(strategy_id, {})
     existing.update(params)

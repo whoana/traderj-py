@@ -266,19 +266,27 @@ def _apply_overrides(preset: StrategyPreset, overrides: dict[str, float]) -> Str
         if key in overrides:
             kwargs[key] = overrides[key]
 
-    # tf_weights: merge into existing dict
+    # tf_weights: merge into existing dict and normalize
     tf_updates = {tf: overrides[k] for k, tf in _TF_WEIGHT_KEYS.items() if k in overrides}
     if tf_updates:
-        kwargs["tf_weights"] = {**preset.tf_weights, **tf_updates}
+        merged_tf = {**preset.tf_weights, **tf_updates}
+        tf_total = sum(merged_tf.values())
+        if tf_total > 0:
+            merged_tf = {k: v / tf_total for k, v in merged_tf.items()}
+        kwargs["tf_weights"] = merged_tf
 
-    # score_weights: rebuild ScoreWeights
+    # score_weights: rebuild ScoreWeights (normalize to sum=1.0)
     sw_updates = {attr: overrides[k] for k, attr in _SCORE_WEIGHT_KEYS.items() if k in overrides}
     if sw_updates:
-        kwargs["score_weights"] = ScoreWeights(
-            w1=sw_updates.get("w1", preset.score_weights.w1),
-            w2=sw_updates.get("w2", preset.score_weights.w2),
-            w3=sw_updates.get("w3", preset.score_weights.w3),
-        )
+        w1 = sw_updates.get("w1", preset.score_weights.w1)
+        w2 = sw_updates.get("w2", preset.score_weights.w2)
+        w3 = sw_updates.get("w3", preset.score_weights.w3)
+        sw_total = w1 + w2 + w3
+        if sw_total > 0 and abs(sw_total - 1.0) > 0.001:
+            w1 = w1 / sw_total
+            w2 = w2 / sw_total
+            w3 = 1.0 - w1 - w2
+        kwargs["score_weights"] = ScoreWeights(w1=w1, w2=w2, w3=w3)
 
     if not kwargs:
         return preset
