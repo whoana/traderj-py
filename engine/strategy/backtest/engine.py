@@ -93,6 +93,8 @@ class BacktestEngine:
         ohlcv_by_tf: dict[str, pd.DataFrame],
         macro_scores: pd.Series | None = None,
         primary_tf: str = "1h",
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> BacktestResult:
         """Run backtest on historical data.
 
@@ -100,6 +102,8 @@ class BacktestEngine:
             ohlcv_by_tf: Historical candle data by timeframe.
             macro_scores: Optional Series of macro scores indexed by datetime.
             primary_tf: Primary timeframe for bar iteration.
+            start_date: Only trade on bars at or after this date.
+            end_date: Only trade on bars at or before this date.
 
         Returns:
             BacktestResult with trades, equity curve, and metrics.
@@ -109,11 +113,29 @@ class BacktestEngine:
             raise ValueError(f"No data for primary timeframe {primary_tf}")
 
         state = BacktestState(balance_krw=self.config.initial_balance_krw)
-        min_bars = 50  # Minimum bars needed for indicators
 
-        bars = primary_df.iloc[min_bars:]
+        # Use date range if provided, otherwise fall back to positional slicing
+        if start_date is not None:
+            bars = primary_df[primary_df.index >= start_date]
+            if end_date is not None:
+                bars = bars[bars.index <= end_date]
+        else:
+            min_bars = 50
+            bars = primary_df.iloc[min_bars:]
+
         if self.config.max_bars:
             bars = bars.iloc[: self.config.max_bars]
+
+        # Pre-compute indicators + normalization once per TF (major speedup)
+        from engine.strategy.normalizer import normalize_indicators
+
+        precomputed: dict[str, pd.DataFrame] = {}
+        for tf, df in ohlcv_by_tf.items():
+            try:
+                ind = compute_indicators(df)
+                precomputed[tf] = normalize_indicators(ind)
+            except Exception:
+                precomputed[tf] = df
 
         for idx in range(len(bars)):
             bar = bars.iloc[idx]
@@ -133,11 +155,11 @@ class BacktestEngine:
                     )
                     self._close_position(state, exit_price, bar_time, exit_reason)
 
-            # Build look-back window per TF (no look-ahead)
+            # Build look-back window per TF from precomputed data (no look-ahead)
             window: dict[str, pd.DataFrame] = {}
-            for tf, df in ohlcv_by_tf.items():
-                mask = df.index <= bar.name
-                window[tf] = df.loc[mask].tail(200)
+            for tf, pc_df in precomputed.items():
+                mask = pc_df.index <= bar.name
+                window[tf] = pc_df.loc[mask].tail(200)
 
             # Macro score
             macro = 0.0
@@ -344,7 +366,11 @@ class BacktestEngine:
             return
 
         try:
-            df_ind = compute_indicators(regime_df)
+            # Skip indicator computation if already precomputed
+            if "adx" in regime_df.columns:
+                df_ind = regime_df
+            else:
+                df_ind = compute_indicators(regime_df)
             regime_result = detect_regime(df_ind)
         except Exception:
             return

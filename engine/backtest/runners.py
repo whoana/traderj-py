@@ -25,6 +25,8 @@ from engine.strategy.backtest.metrics import compute_metrics
 from engine.strategy.indicators import compute_indicators
 from engine.strategy.presets import STRATEGY_PRESETS, StrategyPreset
 from engine.strategy.regime import REGIME_PRESET_MAP, detect_regime
+from engine.strategy.risk import RiskConfig
+from engine.strategy.scoring import ScoreWeights
 from engine.strategy.signal import SignalGenerator
 
 logger = logging.getLogger(__name__)
@@ -181,6 +183,8 @@ def _run_single_preset(
     initial_balance: float,
     period_days: int,
     max_bars_override: int | None = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
 ) -> dict[str, Any]:
     """Run backtest for a single preset. Returns strategy result dict."""
     needed_tfs = set(preset.tf_weights.keys())
@@ -194,8 +198,8 @@ def _run_single_preset(
     max_bars = max_bars_override or _TF_BARS_PER_DAY.get(ptf, 24) * period_days
     config = BacktestConfig(initial_balance_krw=initial_balance, fee_rate=0.0005, slippage_bps=5.0, max_bars=max_bars)
     sig = _make_signal_generator(preset)
-    eng = BacktestEngine(signal_generator=sig, config=config)
-    result = eng.run(data, primary_tf=ptf)
+    eng = BacktestEngine(signal_generator=sig, risk_config=preset.risk_config, config=config)
+    result = eng.run(data, primary_tf=ptf, start_date=start_date, end_date=end_date)
 
     return {
         "strategy_id": preset.strategy_id,
@@ -234,7 +238,7 @@ async def run_single(
 
     job.status = BacktestJobStatus.RUNNING
     update(f"백테스트 실행 중: {preset.name}")
-    strat_result = _run_single_preset(preset, ohlcv, initial, period_days)
+    strat_result = await asyncio.to_thread(_run_single_preset, preset, ohlcv, initial, period_days, None, start, end)
 
     market = _market_info(ohlcv.get("1d", pd.DataFrame()), start, end)
 
@@ -275,7 +279,7 @@ async def run_compare(
     for i, (sid, preset) in enumerate(presets):
         update(f"전략 {i + 1}/{len(presets)} 실행 중 ({preset.name})")
         try:
-            r = _run_single_preset(preset, ohlcv, initial, period_days)
+            r = await asyncio.to_thread(_run_single_preset, preset, ohlcv, initial, period_days, None, start, end)
             results.append(r)
         except Exception as e:
             logger.warning("Backtest failed for %s: %s", sid, e)
@@ -380,7 +384,7 @@ async def run_ai_regime(
         eng = BacktestEngine(signal_generator=sig, config=config)
 
         try:
-            result = eng.run(week_data, primary_tf=ptf)
+            result = await asyncio.to_thread(lambda: eng.run(week_data, primary_tf=ptf, start_date=ws, end_date=we))
             ai_all_trades.extend(result.trades)
             ai_all_equity.extend(result.equity_curve)
             if result.equity_curve:
@@ -403,7 +407,7 @@ async def run_ai_regime(
     for j, (sid, preset) in enumerate(presets):
         update(f"비교 전략 {j + 1}/{len(presets)} ({preset.name})")
         try:
-            r = _run_single_preset(preset, ohlcv, initial, period_days)
+            r = await asyncio.to_thread(_run_single_preset, preset, ohlcv, initial, period_days, None, start, end)
             compare_results.append(r)
         except Exception as e:
             logger.warning("Compare backtest failed for %s: %s", sid, e)
@@ -434,4 +438,233 @@ async def run_ai_regime(
             "equity_curve": _equity_summary(ai_all_equity),
             "trades": _trades_to_list(ai_all_trades),
         },
+    }
+
+
+# ── Runner: optimize ────────────────────────────────────────
+
+
+def _optuna_backtest_objective(
+    preset: StrategyPreset,
+    ohlcv: dict[str, pd.DataFrame],
+    initial_balance: float,
+    start_date: datetime,
+    end_date: datetime,
+) -> Callable:
+    """Create Optuna objective function that runs backtest per trial."""
+    import optuna
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    from engine.tuner.config import TIER_1_BOUNDS
+
+    period_days = (end_date - start_date).days + 1
+
+    def objective(trial: optuna.Trial) -> float:
+        # Sample Tier 1 parameters around current preset values
+        current = {
+            "buy_threshold": preset.buy_threshold,
+            "sell_threshold": preset.sell_threshold,
+            "macro_weight": preset.macro_weight,
+        }
+        for tf_key, weight in preset.tf_weights.items():
+            current[f"tf_weight_{tf_key}"] = weight
+        current["score_w1"] = preset.score_weights.w1
+        current["score_w2"] = preset.score_weights.w2
+        current["score_w3"] = preset.score_weights.w3
+
+        trial_params: dict[str, float] = {}
+        for b in TIER_1_BOUNDS:
+            cur_val = current.get(b.name, (b.min_value + b.max_value) / 2)
+            delta = abs(cur_val) * 0.30  # ±30% search range
+            if delta == 0:
+                delta = (b.max_value - b.min_value) * 0.30
+            low = max(b.min_value, cur_val - delta)
+            high = min(b.max_value, cur_val + delta)
+            if low >= high:
+                low, high = b.min_value, b.max_value
+            trial_params[b.name] = trial.suggest_float(b.name, low, high)
+
+        # Normalize tf weights
+        tf_keys = [k for k in trial_params if k.startswith("tf_weight_")]
+        if tf_keys:
+            total = sum(trial_params[k] for k in tf_keys)
+            if total > 0:
+                for k in tf_keys:
+                    trial_params[k] = trial_params[k] / total
+
+        # Normalize score weights
+        sw_total = trial_params.get("score_w1", 0.33) + trial_params.get("score_w2", 0.33) + trial_params.get("score_w3", 0.33)
+        if sw_total > 0:
+            for k in ("score_w1", "score_w2", "score_w3"):
+                if k in trial_params:
+                    trial_params[k] = trial_params[k] / sw_total
+
+        # Build modified signal generator
+        tf_map = {"tf_weight_1h": "1h", "tf_weight_4h": "4h", "tf_weight_1d": "1d"}
+        new_tf = {}
+        for pname, tfk in tf_map.items():
+            if pname in trial_params:
+                new_tf[tfk] = trial_params[pname]
+        tf_weights = new_tf if new_tf else dict(preset.tf_weights)
+
+        sig = SignalGenerator(
+            strategy_id=preset.strategy_id,
+            scoring_mode=preset.scoring_mode,
+            entry_mode=preset.entry_mode,
+            score_weights=ScoreWeights(
+                w1=trial_params.get("score_w1", preset.score_weights.w1),
+                w2=trial_params.get("score_w2", preset.score_weights.w2),
+                w3=trial_params.get("score_w3", preset.score_weights.w3),
+            ),
+            tf_weights=tf_weights,
+            buy_threshold=trial_params.get("buy_threshold", preset.buy_threshold),
+            sell_threshold=trial_params.get("sell_threshold", preset.sell_threshold),
+            majority_min=preset.majority_min,
+            use_daily_gate=preset.use_daily_gate,
+            macro_weight=trial_params.get("macro_weight", preset.macro_weight),
+        )
+
+        needed_tfs = set(tf_weights.keys())
+        if preset.use_daily_gate:
+            needed_tfs.add("1d")
+        data = {tf: ohlcv[tf] for tf in needed_tfs if tf in ohlcv}
+        if not data:
+            return 0.0
+
+        ptf = _primary_tf(preset)
+        max_bars = _TF_BARS_PER_DAY.get(ptf, 24) * period_days
+        config = BacktestConfig(initial_balance_krw=initial_balance, fee_rate=0.0005, slippage_bps=5.0, max_bars=max_bars)
+        eng = BacktestEngine(signal_generator=sig, risk_config=preset.risk_config, config=config)
+
+        try:
+            result = eng.run(data, primary_tf=ptf, start_date=start_date, end_date=end_date)
+        except Exception:
+            return 0.0
+
+        pf = result.metrics.get("profit_factor", 0.0)
+        mdd = result.metrics.get("max_drawdown_pct", 0.0)
+        trades = result.metrics.get("total_trades", 0)
+        ret = result.metrics.get("total_return_pct", 0.0)
+
+        trial.set_user_attr("mdd", mdd if mdd else 0.0)
+        trial.set_user_attr("win_rate", result.metrics.get("win_rate", 0.0))
+        trial.set_user_attr("trades", trades)
+        trial.set_user_attr("return_pct", ret if ret else 0.0)
+
+        # Penalize extreme MDD or no trades
+        if mdd and mdd > 15.0:
+            return 0.0
+        if not trades or trades < 2:
+            return 0.0
+
+        # Maximize: return_pct as primary, profit_factor as tiebreaker
+        score = (ret if ret else 0.0) + (pf if pf and pf != float("inf") else 0.0) * 0.1
+        return score
+
+    return objective
+
+
+def _run_optuna_optimize(
+    preset: StrategyPreset,
+    ohlcv: dict[str, pd.DataFrame],
+    initial_balance: float,
+    start_date: datetime,
+    end_date: datetime,
+    n_trials: int = 30,
+) -> dict[str, Any]:
+    """Run Optuna optimization (CPU-bound, call via asyncio.to_thread)."""
+    import optuna
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    # 1. Baseline: run current preset
+    baseline = _run_single_preset(preset, ohlcv, initial_balance, (end_date - start_date).days + 1, None, start_date, end_date)
+    baseline_metrics = baseline.get("metrics", {})
+
+    # 2. Run Optuna study
+    objective = _optuna_backtest_objective(preset, ohlcv, initial_balance, start_date, end_date)
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
+
+    # 3. Extract top 3 candidates
+    completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE and t.value is not None and t.value > 0]
+    completed.sort(key=lambda t: t.value, reverse=True)
+    top = completed[:3]
+
+    candidates = []
+    for i, trial in enumerate(top):
+        params = dict(trial.params)
+        # Normalize for display
+        display_params = {}
+        for k, v in params.items():
+            display_params[k] = round(v, 4)
+
+        candidates.append({
+            "rank": i + 1,
+            "params": display_params,
+            "return_pct": round(trial.user_attrs.get("return_pct", 0.0), 2),
+            "win_rate": round(trial.user_attrs.get("win_rate", 0.0), 4),
+            "mdd": round(trial.user_attrs.get("mdd", 0.0), 2),
+            "trades": trial.user_attrs.get("trades", 0),
+            "score": round(trial.value, 4),
+        })
+
+    return {
+        "strategy_id": preset.strategy_id,
+        "strategy_name": preset.name,
+        "baseline": {
+            "return_pct": baseline_metrics.get("total_return_pct"),
+            "win_rate": baseline_metrics.get("win_rate"),
+            "mdd": baseline_metrics.get("max_drawdown_pct"),
+            "trades": baseline_metrics.get("total_trades"),
+            "profit_factor": baseline_metrics.get("profit_factor"),
+        },
+        "candidates": candidates,
+        "study_stats": {
+            "n_trials": len(study.trials),
+            "n_completed": len(completed),
+            "best_value": study.best_value if completed else None,
+        },
+    }
+
+
+async def run_optimize(
+    job: BacktestJob,
+    update: Callable[[str], None],
+    db: aiosqlite.Connection,
+) -> dict[str, Any]:
+    """Run Optuna parameter optimization for a single strategy."""
+    strategy_id = job.config["strategy_id"]
+    preset = STRATEGY_PRESETS.get(strategy_id)
+    if preset is None:
+        raise ValueError(f"Unknown strategy: {strategy_id}")
+
+    start = datetime.strptime(job.config["start_date"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    end = datetime.strptime(job.config["end_date"], "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59, tzinfo=timezone.utc
+    )
+    initial = job.config.get("initial_balance", 50_000_000)
+    n_trials = job.config.get("n_trials", 30)
+
+    cache = CandleCache(db)
+    await cache.init_table()
+
+    job.status = BacktestJobStatus.FETCHING
+    ohlcv, _ = await _fetch_all_candles(cache, start, end, update)
+
+    job.status = BacktestJobStatus.RUNNING
+    update(f"Optuna 최적화 실행 중: {preset.name} ({n_trials} trials)")
+
+    result = await asyncio.to_thread(
+        _run_optuna_optimize, preset, ohlcv, initial, start, end, n_trials,
+    )
+
+    market = _market_info(ohlcv.get("1d", pd.DataFrame()), start, end)
+
+    return {
+        "mode": "optimize",
+        "period": {"start": job.config["start_date"], "end": job.config["end_date"]},
+        "market": market,
+        "optimization": result,
     }

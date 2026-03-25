@@ -42,6 +42,8 @@ const PRESETS = [
   { id: "STR-006", name: "Scalper (1h/4h)" },
   { id: "STR-007", name: "Bear Defensive (1d)" },
   { id: "STR-008", name: "Bear Cautious Reversal (4h/1d)" },
+  { id: "STR-009", name: "Bull Trend Rider (4h)" },
+  { id: "STR-010", name: "Swing Trend (4h/1d)" },
 ];
 
 const MODE_LABELS: Record<Mode, string> = {
@@ -315,7 +317,9 @@ export default function BacktestPage() {
       {status === "done" && result && <BacktestResult data={result} />}
 
       {/* ── Action Panel ── */}
-      {status === "done" && jobId && <ActionPanel jobId={jobId} />}
+      {status === "done" && jobId && (
+        <ActionPanel jobId={jobId} startDate={startDate} endDate={endDate} />
+      )}
 
       {/* ── History ── */}
       {showHistory && (

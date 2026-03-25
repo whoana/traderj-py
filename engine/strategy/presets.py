@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from engine.strategy.risk import RiskConfig
 from engine.strategy.scoring import HYBRID_WEIGHTS, TREND_FOLLOW_WEIGHTS, ScoreWeights
 from shared.enums import EntryMode, ScoringMode
 
@@ -28,6 +29,7 @@ class StrategyPreset:
     majority_min: int
     use_daily_gate: bool
     macro_weight: float
+    risk_config: RiskConfig | None = None  # per-preset risk overrides
 
 
 # Tuned 2026-03-07 via grid search (90d walk-forward: 60d train / 30d OOS)
@@ -174,6 +176,59 @@ STR_008 = StrategyPreset(
 )
 
 
+# STR-009: Bull Trend Rider (strong uptrend — wide stops, ride the wave)
+# Designed for +20%+ monthly moves. Low entry bar, very wide trailing.
+STR_009 = StrategyPreset(
+    name="Bull Trend Rider (4h)",
+    strategy_id="STR-009",
+    scoring_mode=ScoringMode.TREND_FOLLOW,
+    entry_mode=EntryMode.WEIGHTED,
+    score_weights=TREND_FOLLOW_WEIGHTS,
+    tf_weights={"1h": 0.2, "4h": 0.5, "1d": 0.3},
+    buy_threshold=0.04,
+    sell_threshold=-0.15,
+    majority_min=2,
+    use_daily_gate=False,
+    macro_weight=0.0,
+    risk_config=RiskConfig(
+        max_position_pct=0.35,
+        min_position_pct=0.10,
+        target_risk_pct=0.03,
+        stop_loss_pct=0.06,
+        atr_stop_multiplier=3.0,
+        trailing_stop_activation_pct=0.05,
+        trailing_stop_distance_pct=0.04,
+        reward_risk_ratio=3.0,
+    ),
+)
+
+# STR-010: Swing Trend Follow (moderate trend — balanced risk/reward)
+# Middle ground between scalping and trend riding.
+STR_010 = StrategyPreset(
+    name="Swing Trend (4h/1d)",
+    strategy_id="STR-010",
+    scoring_mode=ScoringMode.TREND_FOLLOW,
+    entry_mode=EntryMode.WEIGHTED,
+    score_weights=TREND_FOLLOW_WEIGHTS,
+    tf_weights={"4h": 0.4, "1d": 0.6},
+    buy_threshold=0.06,
+    sell_threshold=-0.12,
+    majority_min=2,
+    use_daily_gate=False,
+    macro_weight=0.05,
+    risk_config=RiskConfig(
+        max_position_pct=0.25,
+        min_position_pct=0.08,
+        target_risk_pct=0.025,
+        stop_loss_pct=0.05,
+        atr_stop_multiplier=2.5,
+        trailing_stop_activation_pct=0.03,
+        trailing_stop_distance_pct=0.03,
+        reward_risk_ratio=2.5,
+    ),
+)
+
+
 STRATEGY_PRESETS: dict[str, StrategyPreset] = {
     "default": DEFAULT_PRESET,
     "STR-001": STR_001,
@@ -184,4 +239,6 @@ STRATEGY_PRESETS: dict[str, StrategyPreset] = {
     "STR-006": STR_006,
     "STR-007": STR_007,
     "STR-008": STR_008,
+    "STR-009": STR_009,
+    "STR-010": STR_010,
 }

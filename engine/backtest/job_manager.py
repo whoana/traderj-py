@@ -16,7 +16,7 @@ from engine.backtest.schemas import BacktestJobStatus, BacktestMode
 logger = logging.getLogger(__name__)
 
 MAX_HISTORY = 20
-JOB_TIMEOUT_SEC = 180
+JOB_TIMEOUT_SEC = 600
 
 
 @dataclass
@@ -58,6 +58,16 @@ class BacktestJob:
             return {
                 "ai_return_pct": ai.get("aggregate_metrics", {}).get("total_return_pct"),
                 "best_strategy": r.get("ranking", [None])[0],
+            }
+        if self.mode == BacktestMode.OPTIMIZE:
+            opt = r.get("optimization", {})
+            candidates = opt.get("candidates", [])
+            best = candidates[0] if candidates else {}
+            return {
+                "strategy_id": opt.get("strategy_id"),
+                "best_return_pct": best.get("return_pct"),
+                "baseline_return_pct": opt.get("baseline", {}).get("return_pct"),
+                "n_trials": opt.get("study_stats", {}).get("n_trials"),
             }
         # single
         strats = r.get("strategies", [])

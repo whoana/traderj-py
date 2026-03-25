@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from api.deps import app_state, get_store
 from api.middleware.auth import verify_api_key
 from engine.backtest.job_manager import BacktestJob, BacktestJobManager
+from pydantic import BaseModel as PydanticBaseModel
 from engine.backtest.schemas import (
     BacktestJobListResponse,
     BacktestJobResponse,
@@ -29,6 +30,15 @@ from engine.backtest.schemas import (
     BacktestMode,
     BacktestRunRequest,
 )
+
+
+class RegimeMapEntry(PydanticBaseModel):
+    regime: str
+    suggested_strategy: str
+
+
+class ApplyRegimeMapRequest(PydanticBaseModel):
+    suggestions: list[RegimeMapEntry]
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +94,8 @@ async def run_backtest(req: BacktestRunRequest):
     # Validate
     if req.mode == BacktestMode.SINGLE and not req.strategy_id:
         raise HTTPException(400, "strategy_id is required for single mode")
+    if req.mode == BacktestMode.OPTIMIZE and not req.strategy_id:
+        raise HTTPException(400, "strategy_id is required for optimize mode")
 
     start = datetime.strptime(req.start_date, "%Y-%m-%d")
     end = datetime.strptime(req.end_date, "%Y-%m-%d")
@@ -108,14 +120,17 @@ async def run_backtest(req: BacktestRunRequest):
     }
     if req.strategy_id:
         config["strategy_id"] = req.strategy_id
+    if req.mode == BacktestMode.OPTIMIZE:
+        config["n_trials"] = req.n_trials
 
     # Select runner
-    from engine.backtest.runners import run_ai_regime, run_compare, run_single
+    from engine.backtest.runners import run_ai_regime, run_compare, run_optimize, run_single
 
     runners = {
         BacktestMode.SINGLE: run_single,
         BacktestMode.COMPARE: run_compare,
         BacktestMode.AI_REGIME: run_ai_regime,
+        BacktestMode.OPTIMIZE: run_optimize,
     }
     runner_fn = runners[req.mode]
 
@@ -183,4 +198,45 @@ async def analyze_job(job_id: str):
         "job_id": job_id,
         "analysis": summary,
         "regime_suggestions": regime_suggestions,
+    }
+
+
+@router.post("/apply-regime-map")
+async def apply_regime_map(req: ApplyRegimeMapRequest):
+    """Apply regime-strategy mapping suggestions to the running engine."""
+    from engine.strategy.presets import STRATEGY_PRESETS
+    from engine.strategy.regime import REGIME_PRESET_MAP
+    from shared.enums import RegimeType
+
+    applied: list[dict[str, str]] = []
+    errors: list[str] = []
+
+    for entry in req.suggestions:
+        # Validate strategy exists
+        if entry.suggested_strategy not in STRATEGY_PRESETS:
+            errors.append(f"Unknown strategy: {entry.suggested_strategy}")
+            continue
+
+        # Find matching RegimeType
+        regime_enum = None
+        for rt in RegimeType:
+            if rt.value == entry.regime:
+                regime_enum = rt
+                break
+        if regime_enum is None:
+            errors.append(f"Unknown regime: {entry.regime}")
+            continue
+
+        old_strategy = REGIME_PRESET_MAP.get(regime_enum, "unknown")
+        REGIME_PRESET_MAP[regime_enum] = entry.suggested_strategy
+        applied.append({
+            "regime": entry.regime,
+            "old_strategy": old_strategy,
+            "new_strategy": entry.suggested_strategy,
+        })
+
+    return {
+        "applied": applied,
+        "errors": errors,
+        "current_map": {rt.value: sid for rt, sid in REGIME_PRESET_MAP.items()},
     }

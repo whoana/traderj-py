@@ -127,8 +127,14 @@ class SignalGenerator:
             if df.empty or tf not in self.tf_weights:
                 continue
 
-            df_ind = compute_indicators(df, self.indicator_config)
-            df_norm = normalize_indicators(df_ind)
+            # Skip indicator computation if already precomputed (backtest optimization)
+            if "z_macd_hist" in df.columns:
+                df_norm = df
+            elif "ema_short" in df.columns:
+                df_norm = normalize_indicators(df)
+            else:
+                df_ind = compute_indicators(df, self.indicator_config)
+                df_norm = normalize_indicators(df_ind)
 
             if self.scoring_mode == ScoringMode.HYBRID:
                 s1 = reversal_score(df_norm)
@@ -147,11 +153,11 @@ class SignalGenerator:
         daily_gate: DailyGateResult | None = None
         if self.use_daily_gate and "1d" in ohlcv_by_tf:
             df_1d_raw = ohlcv_by_tf["1d"]
-            if len(df_1d_raw) >= 50:
+            if "ema_short" in df_1d_raw.columns:
+                daily_gate = check_daily_gate(df_1d_raw)
+            elif len(df_1d_raw) >= 50:
                 df_1d = compute_indicators(df_1d_raw, self.indicator_config)
                 daily_gate = check_daily_gate(df_1d)
-            elif "ema_short" in df_1d_raw.columns:
-                daily_gate = check_daily_gate(df_1d_raw)
             else:
                 daily_gate = check_daily_gate(None)
 

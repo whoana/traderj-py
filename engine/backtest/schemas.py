@@ -13,6 +13,7 @@ class BacktestMode(StrEnum):
     SINGLE = "single"
     COMPARE = "compare"
     AI_REGIME = "ai_regime"
+    OPTIMIZE = "optimize"
 
 
 class BacktestJobStatus(StrEnum):
@@ -31,8 +32,9 @@ class BacktestRunRequest(BaseModel):
     mode: BacktestMode
     start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
     end_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
-    strategy_id: str | None = None  # required for mode=single
+    strategy_id: str | None = None  # required for mode=single/optimize
     initial_balance: float = 50_000_000
+    n_trials: int = Field(30, ge=10, le=100)  # optimize mode: Optuna trial count
 
 
 # ── Response Models ──────────────────────────────────────────
