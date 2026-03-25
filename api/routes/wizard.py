@@ -20,15 +20,13 @@ from pydantic import BaseModel, Field
 
 from api.deps import app_state
 from api.middleware.auth import verify_api_key
-from engine.backtest.job_manager import BacktestJob, BacktestJobManager
+from api.routes.backtest import _manager
+from engine.backtest.job_manager import BacktestJob
 from engine.backtest.schemas import BacktestJobStatus, BacktestMode
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/backtest/wizard", tags=["wizard"], dependencies=[Depends(verify_api_key)])
-
-# Share job manager with backtest routes for unified job tracking
-_manager = BacktestJobManager()
 
 
 def _get_db_path() -> str:
